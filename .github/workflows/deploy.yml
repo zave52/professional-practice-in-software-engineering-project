@@ -62,5 +62,6 @@ jobs:
           script: |
             set -e
             cd /opt/cicd-dashboard
-            git pull --ff-only origin main
+            git fetch origin main
+            git reset --hard origin/main
             docker compose up -d --build
