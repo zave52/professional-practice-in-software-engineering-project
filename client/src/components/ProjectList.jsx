@@ -1,4 +1,4 @@
-import {ExternalLink, Rocket, Trash2} from 'lucide-react';
+import {ExternalLink, GitBranch, Rocket, Trash2} from 'lucide-react';
 
 function ProjectList({projects, onTriggerDeploy, onDeleteProject, isLoading}) {
     return (
@@ -52,6 +52,19 @@ function ProjectList({projects, onTriggerDeploy, onDeleteProject, isLoading}) {
                                    className="text-sky-300 hover:text-sky-200">
                                     <ExternalLink className="h-4 w-4"/>
                                 </a>
+                            </div>
+
+                            <div
+                                className="mt-3 flex min-w-0 items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-2 text-sm text-sky-100"
+                                title={project.workflow_name || 'Workflow not configured'}
+                            >
+                                <GitBranch className="h-4 w-4 shrink-0 text-sky-300"/>
+                                <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-sky-300">
+                                    Workflow
+                                </span>
+                                <span className="truncate">
+                                    {project.workflow_name || 'Workflow not configured'}
+                                </span>
                             </div>
 
                             <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
