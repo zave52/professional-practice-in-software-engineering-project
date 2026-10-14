@@ -1,7 +1,8 @@
 const githubApiBaseUrl = 'https://api.github.com';
 
-const getRepository = () => {
-    const repository = process.env.GITHUB_REPOSITORY
+const getRepository = (configuredRepository) => {
+    const repository = configuredRepository
+        || process.env.GITHUB_REPOSITORY
         || 'zave52/professional-practice-in-software-engineering-project';
     if (!/^[^/\s]+\/[^/\s]+$/.test(repository)) {
         const error = new Error('GITHUB_REPOSITORY must use the owner/repository format.');
@@ -46,8 +47,8 @@ const mapRunStatus = (run) => {
     return run.conclusion === 'success' ? 'SUCCESS' : 'FAILED';
 };
 
-export const getWorkflowRuns = async () => {
-    const repository = getRepository();
+export const getWorkflowRuns = async (configuredRepository) => {
+    const repository = getRepository(configuredRepository);
     const response = await fetch(
         `${githubApiBaseUrl}/repos/${repository}/actions/runs?per_page=50`,
         {headers: getHeaders()},
@@ -84,11 +85,12 @@ export const getWorkflowRuns = async () => {
         workflow_url: run.html_url,
         event: run.event,
         run_number: run.run_number,
+        repository,
     }));
 };
 
-export const getRepositoryRefs = async () => {
-    const repository = getRepository();
+export const getRepositoryRefs = async (configuredRepository) => {
+    const repository = getRepository(configuredRepository);
     const [branches, tags] = await Promise.all([
         githubRequest(`${githubApiBaseUrl}/repos/${repository}/branches?per_page=100`),
         githubRequest(`${githubApiBaseUrl}/repos/${repository}/tags?per_page=100`),

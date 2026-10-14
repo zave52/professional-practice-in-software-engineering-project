@@ -75,10 +75,10 @@ function App() {
     const handleCreateProject = async (projectData) => {
         try {
             const newProject = await createProject(projectData);
-            setProjects((currentProjects) => [newProject, ...currentProjects]);
             setProjectModalOpen(false);
             setActiveTab('projects');
-            showToast(`Project "${newProject.name}" was created successfully.`, 'success');
+            await refreshDashboard();
+            showToast(`Project "${newProject.name}" and its deployment history were loaded.`, 'success');
         } catch (error) {
             showToast(error.message || 'Unable to save the project.', 'error');
         }

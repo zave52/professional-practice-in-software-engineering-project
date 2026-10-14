@@ -22,7 +22,7 @@ function TriggerDeployModal({project, isOpen, onClose, onSubmit}) {
         setRef('');
         setRefsError('');
         setIsLoadingRefs(true);
-        getDeploymentRefs()
+        getDeploymentRefs(project.id)
             .then((data) => {
                 setBranches(data.branches || []);
                 setTags(data.tags || []);
