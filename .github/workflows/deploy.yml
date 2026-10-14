@@ -56,14 +56,16 @@ jobs:
     steps:
       - name: Deploy containers over SSH
         uses: appleboy/ssh-action@v1.2.2
+        env:
+          GITHUB_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: GITHUB_TOKEN
+          envs: GITHUB_SHA
           script: |
             set -e
             cd /opt/cicd-dashboard
-            git fetch origin main
-            git reset --hard origin/main
+            git fetch --prune origin "$GITHUB_SHA"
+            git checkout --detach "$GITHUB_SHA"
             docker compose up -d --build --remove-orphans
