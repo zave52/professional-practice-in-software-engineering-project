@@ -31,7 +31,21 @@ const validateProject = ({name, repoUrl, environment}) => {
     }
 };
 
-export const listProjects = () => projectRepository.findAll();
+export const listProjects = async () => {
+    const projects = await projectRepository.findAll();
+    if (projects.length > 0) {
+        return projects;
+    }
+
+    const repository = process.env.GITHUB_REPOSITORY
+        || 'zave52/professional-practice-in-software-engineering-project';
+    if (!/^[^/\s]+\/[^/\s]+$/.test(repository)) {
+        return projects;
+    }
+
+    await projectRepository.ensureConfiguredProject({repository});
+    return projectRepository.findAll();
+};
 
 export const getProject = async (id) => {
     const project = await projectRepository.findById(toPositiveInteger(id, 'Project id'));
