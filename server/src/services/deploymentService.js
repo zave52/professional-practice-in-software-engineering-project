@@ -44,6 +44,7 @@ export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref
 
     const dispatch = await dispatchDeployment({
         repository,
+        workflowId: project.workflow_id,
         ref: typeof ref === 'string' && ref.trim() ? ref.trim() : 'main',
         createTag: Boolean(createTag),
         tagName: typeof tagName === 'string' ? tagName.trim() : tagName,

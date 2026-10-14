@@ -1,4 +1,4 @@
-import {getRepositoryRefs, getWorkflowRuns} from '../services/githubActionsService.js';
+import {getRepositoryRefs, getRepositoryWorkflows, getWorkflowRuns} from '../services/githubActionsService.js';
 import * as projectRepository from '../repositories/projectRepository.js';
 
 export const getPipelines = async (req, res, next) => {
@@ -12,7 +12,7 @@ export const getPipelines = async (req, res, next) => {
         }
         const runsByProject = await Promise.all(projects.map(async (project) => {
             const repository = new URL(project.repo_url).pathname.replace(/^\/|\/$/g, '');
-            const runs = await getWorkflowRuns(repository);
+            const runs = await getWorkflowRuns(repository, project.workflow_id);
             return runs.map((run) => ({...run, project_id: project.id}));
         }));
         const deployments = runsByProject.flat().sort(
@@ -36,6 +36,19 @@ export const getRefs = async (req, res, next) => {
             ? new URL(project.repo_url).pathname.replace(/^\/|\/$/g, '')
             : undefined;
         return res.status(200).json(await getRepositoryRefs(repository));
+    } catch (error) {
+        return next(error);
+    }
+};
+
+export const getWorkflows = async (req, res, next) => {
+    try {
+        const repoUrl = req.query.repo_url;
+        if (!repoUrl) {
+            return res.status(400).json({status: 400, message: 'Repository URL is required.'});
+        }
+        const repository = new URL(repoUrl).pathname.replace(/^\/|\/$/g, '');
+        return res.status(200).json(await getRepositoryWorkflows(repository));
     } catch (error) {
         return next(error);
     }

@@ -1,21 +1,49 @@
 import {X} from 'lucide-react';
 import {useEffect, useState} from 'react';
+import {getRepositoryWorkflows} from '../services/api';
 
 const initialFormState = {
     name: '',
     repo_url: '',
+    workflow_id: '',
+    workflow_name: '',
 };
 
 function AddProjectModal({isOpen, onClose, onSubmit}) {
     const [form, setForm] = useState(initialFormState);
     const [errors, setErrors] = useState({});
+    const [workflows, setWorkflows] = useState([]);
+    const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(false);
 
     useEffect(() => {
         if (!isOpen) {
             setForm(initialFormState);
             setErrors({});
+            setWorkflows([]);
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || !/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(form.repo_url.trim())) {
+            return;
+        }
+        setIsLoadingWorkflows(true);
+        getRepositoryWorkflows(form.repo_url.trim())
+            .then((data) => {
+                setWorkflows(data);
+                setForm((current) => ({
+                    ...current,
+                    workflow_id: data[0] ? String(data[0].id) : '',
+                    workflow_name: data[0]?.name || '',
+                }));
+                setErrors((current) => ({...current, workflow: ''}));
+            })
+            .catch((error) => {
+                setWorkflows([]);
+                setErrors((current) => ({...current, workflow: error.message || 'Unable to load workflows.'}));
+            })
+            .finally(() => setIsLoadingWorkflows(false));
+    }, [form.repo_url, isOpen]);
 
     if (!isOpen) {
         return null;
@@ -30,6 +58,9 @@ function AddProjectModal({isOpen, onClose, onSubmit}) {
 
         if (!/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/.*)?$/.test(form.repo_url.trim())) {
             nextErrors.repo_url = 'Repository URL must follow the https://github.com/... format.';
+        }
+        if (!form.workflow_id) {
+            nextErrors.workflow = 'Select a GitHub Actions workflow.';
         }
 
         setErrors(nextErrors);
@@ -46,6 +77,8 @@ function AddProjectModal({isOpen, onClose, onSubmit}) {
         onSubmit({
             name: form.name.trim(),
             repo_url: form.repo_url.trim(),
+            workflow_id: Number(form.workflow_id),
+            workflow_name: form.workflow_name,
         });
     };
 
@@ -57,6 +90,26 @@ function AddProjectModal({isOpen, onClose, onSubmit}) {
                     <div>
                         <p className="text-sm text-slate-400">New project</p>
                         <h3 className="text-xl font-semibold text-white">Add project</h3>
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-200">GitHub Actions workflow</label>
+                        <select value={form.workflow_id}
+                                disabled={isLoadingWorkflows || workflows.length === 0}
+                                onChange={(event) => {
+                                    const workflow = workflows.find((item) => String(item.id) === event.target.value);
+                                    setForm((current) => ({
+                                        ...current,
+                                        workflow_id: event.target.value,
+                                        workflow_name: workflow?.name || ''
+                                    }));
+                                }}
+                                className="w-full rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-white disabled:opacity-50">
+                            <option value="">{isLoadingWorkflows ? 'Loading workflows...' : 'Select workflow'}</option>
+                            {workflows.map((workflow) => <option key={workflow.id}
+                                                                 value={workflow.id}>{workflow.name} ({workflow.path})</option>)}
+                        </select>
+                        {errors.workflow && <p className="mt-2 text-xs text-rose-300">{errors.workflow}</p>}
                     </div>
                     <button
                         type="button"

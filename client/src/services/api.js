@@ -28,12 +28,18 @@ export async function getProjects() {
     return request('/api/projects');
 }
 
+export async function getRepositoryWorkflows(repoUrl) {
+    return request(`/api/pipelines/workflows?repo_url=${encodeURIComponent(repoUrl)}`);
+}
+
 export async function createProject(projectData) {
     return request('/api/projects', {
         method: 'POST',
         body: JSON.stringify({
             name: projectData.name,
             repo_url: projectData.repo_url,
+            workflow_id: projectData.workflow_id,
+            workflow_name: projectData.workflow_name,
         }),
     });
 }

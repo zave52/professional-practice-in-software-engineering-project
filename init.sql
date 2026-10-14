@@ -20,11 +20,13 @@ CREATE TABLE users
 
 CREATE TABLE projects
 (
-    id         SERIAL PRIMARY KEY,
-    user_id    INT          NOT NULL,
-    name       VARCHAR(100) NOT NULL UNIQUE,
-    repo_url   VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id            SERIAL PRIMARY KEY,
+    user_id       INT          NOT NULL,
+    name          VARCHAR(100) NOT NULL UNIQUE,
+    repo_url      VARCHAR(255) NOT NULL,
+    workflow_id   BIGINT       NOT NULL,
+    workflow_name VARCHAR(255) NOT NULL,
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_projects_user FOREIGN KEY (user_id)
         REFERENCES users (id) ON DELETE RESTRICT
 );

@@ -29,6 +29,10 @@ export const migrateObsoleteColumns = async () => {
     await pool.query(`
         ALTER TABLE projects
             DROP COLUMN IF EXISTS environment;
+        ALTER TABLE projects
+            ADD COLUMN IF NOT EXISTS workflow_id BIGINT;
+        ALTER TABLE projects
+            ADD COLUMN IF NOT EXISTS workflow_name VARCHAR(255);
         ALTER TABLE deployments
             DROP COLUMN IF EXISTS health_status;
         ALTER TABLE deployments

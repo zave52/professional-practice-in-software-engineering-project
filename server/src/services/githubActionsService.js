@@ -53,10 +53,11 @@ const mapRunStatus = (run) => {
     return 'FAILED';
 };
 
-export const getWorkflowRuns = async (configuredRepository) => {
+export const getWorkflowRuns = async (configuredRepository, workflowId) => {
     const repository = getRepository(configuredRepository);
+    const workflowQuery = workflowId ? `&workflow_id=${encodeURIComponent(workflowId)}` : '';
     const response = await fetch(
-        `${githubApiBaseUrl}/repos/${repository}/actions/runs?per_page=50`,
+        `${githubApiBaseUrl}/repos/${repository}/actions/runs?per_page=50${workflowQuery}`,
         {headers: getHeaders()},
     );
 
@@ -86,6 +87,20 @@ export const getWorkflowRuns = async (configuredRepository) => {
         event: run.event,
         run_number: run.run_number,
         repository,
+        workflow_id: run.workflow_id,
+    }));
+};
+
+export const getRepositoryWorkflows = async (configuredRepository) => {
+    const repository = getRepository(configuredRepository);
+    const payload = await githubRequest(
+        `${githubApiBaseUrl}/repos/${repository}/actions/workflows?per_page=100`,
+    );
+    return (payload.workflows || []).map((workflow) => ({
+        id: workflow.id,
+        name: workflow.name,
+        path: workflow.path,
+        state: workflow.state,
     }));
 };
 
@@ -102,9 +117,22 @@ export const getRepositoryRefs = async (configuredRepository) => {
     };
 };
 
-export const dispatchDeployment = async ({repository: configuredRepository, ref, createTag = false, tagName}) => {
+export const dispatchDeployment = async ({
+                                             repository: configuredRepository,
+                                             workflowId,
+                                             ref,
+                                             createTag = false,
+                                             tagName,
+                                         }) => {
     const repository = getRepository(configuredRepository);
     let dispatchRef = ref;
+    if (!workflowId || !/^\d+$/.test(String(workflowId))) {
+        const error = new Error(
+            'Select a valid GitHub Actions workflow for this project before triggering a deployment.',
+        );
+        error.status = 400;
+        throw error;
+    }
 
     if (createTag) {
         if (!tagName || !/^v?[0-9A-Za-z][0-9A-Za-z._/-]{0,29}$/.test(tagName)) {
@@ -125,7 +153,7 @@ export const dispatchDeployment = async ({repository: configuredRepository, ref,
     }
 
     await githubRequest(
-        `${githubApiBaseUrl}/repos/${repository}/actions/workflows/deploy.yml/dispatches`,
+        `${githubApiBaseUrl}/repos/${repository}/actions/workflows/${workflowId}/dispatches`,
         {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},

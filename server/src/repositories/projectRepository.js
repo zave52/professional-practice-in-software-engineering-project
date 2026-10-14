@@ -5,6 +5,8 @@ const projectColumns = `
   p.user_id,
   p.name,
   p.repo_url,
+  p.workflow_id,
+  p.workflow_name,
   p.created_at
 `;
 
@@ -38,12 +40,12 @@ export const ensureConfiguredProject = async ({
     `, [roleResult.rows[0].id]);
 
     const projectResult = await query(`
-        INSERT INTO projects (user_id, name, repo_url)
-        VALUES ($1, $2, $3)
+        INSERT INTO projects (user_id, name, repo_url, workflow_id, workflow_name)
+        VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT (name) DO UPDATE
             SET repo_url = EXCLUDED.repo_url
-        RETURNING id, user_id, name, repo_url, created_at
-    `, [userResult.rows[0].id, repositoryName, repoUrl]);
+        RETURNING id, user_id, name, repo_url, workflow_id, workflow_name, created_at
+    `, [userResult.rows[0].id, repositoryName, repoUrl, 0, 'Unconfigured workflow']);
 
     return projectResult.rows[0];
 };
@@ -75,12 +77,12 @@ export const findById = async (id) => {
     return result.rows[0] || null;
 };
 
-export const create = async ({userId, name, repoUrl}) => {
+export const create = async ({userId, name, repoUrl, workflowId, workflowName}) => {
     const result = await query(`
-        INSERT INTO projects (user_id, name, repo_url)
-        VALUES ($1, $2, $3)
-        RETURNING id, user_id, name, repo_url, created_at
-    `, [userId, name, repoUrl]);
+        INSERT INTO projects (user_id, name, repo_url, workflow_id, workflow_name)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, user_id, name, repo_url, workflow_id, workflow_name, created_at
+    `, [userId, name, repoUrl, workflowId, workflowName]);
     return result.rows[0];
 };
 

@@ -22,6 +22,8 @@ export const createProject = async (req, res, next) => {
             userId: req.user?.id,
             name: req.body?.name,
             repoUrl: req.body?.repo_url,
+            workflowId: req.body?.workflow_id,
+            workflowName: req.body?.workflow_name,
         });
         return res.status(201).json(project);
     } catch (error) {

@@ -51,14 +51,24 @@ export const getProject = async (id) => {
     return project;
 };
 
-export const createProject = async ({userId, name, repoUrl}) => {
+export const createProject = async ({userId, name, repoUrl, workflowId, workflowName}) => {
     const normalized = {
         name: typeof name === 'string' ? name.trim() : name,
         repoUrl: typeof repoUrl === 'string' ? repoUrl.trim() : repoUrl,
     };
     validateProject(normalized);
+    if (!Number.isInteger(Number(workflowId)) || Number(workflowId) <= 0 || typeof workflowName !== 'string') {
+        const error = new Error('A GitHub Actions workflow must be selected.');
+        error.status = 400;
+        throw error;
+    }
     const ownerId = userId || await projectRepository.ensureDefaultUser();
-    return projectRepository.create({userId: ownerId, ...normalized});
+    return projectRepository.create({
+        userId: ownerId,
+        ...normalized,
+        workflowId: Number(workflowId),
+        workflowName: workflowName.trim(),
+    });
 };
 
 export const deleteProject = async (id) => {
