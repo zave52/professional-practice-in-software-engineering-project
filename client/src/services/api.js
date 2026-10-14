@@ -51,12 +51,15 @@ export async function deleteDeployment(deploymentId) {
     return request(`/api/deployments/${deploymentId}`, {method: 'DELETE'});
 }
 
-export async function triggerDeployment(projectId, versionTag) {
+export async function triggerDeployment(projectId, {versionTag, ref, createTag, tagName}) {
     return request('/api/deployments', {
         method: 'POST',
         body: JSON.stringify({
             project_id: projectId,
             version_tag: versionTag,
+            ref,
+            create_tag: createTag,
+            tag_name: tagName,
         }),
     });
 }

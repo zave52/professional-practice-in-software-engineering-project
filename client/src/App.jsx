@@ -6,6 +6,7 @@ import ProjectList from './components/ProjectList';
 import DeploymentTable from './components/DeploymentTable';
 import AddProjectModal from './components/AddProjectModal';
 import ConfirmModal from './components/ConfirmModal';
+import TriggerDeployModal from './components/TriggerDeployModal';
 import {
     createProject,
     deleteDeployment,
@@ -30,6 +31,7 @@ function App() {
     const [isLoading, setIsLoading] = useState(true);
     const [isProjectModalOpen, setProjectModalOpen] = useState(false);
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [triggerProject, setTriggerProject] = useState(null);
     const [pendingAction, setPendingAction] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [environmentFilter, setEnvironmentFilter] = useState('all');
@@ -126,23 +128,16 @@ function App() {
         }
     };
 
-    const handleTriggerDeploy = async (projectId) => {
-        const project = projects.find((item) => Number(item.id) === Number(projectId));
-
-        if (!project) {
-            showToast('The selected project could not be found.', 'error');
-            return;
-        }
-
+    const handleTriggerDeploy = async (project, options) => {
         try {
-            const versionTag = `v${new Date().toISOString().slice(0, 10).replace(/-/g, '.')}.0`;
-            const newDeployment = await triggerDeployment(projectId, versionTag);
-            const refreshedHealth = await getSystemHealth();
-
-            setDeployments((currentDeployments) => [newDeployment, ...currentDeployments]);
-            setSystemHealth(refreshedHealth);
+            await triggerDeployment(project.id, {
+                ...options,
+                versionTag: options.createTag ? options.tagName : `deploy-${Date.now()}`,
+            });
+            setTriggerProject(null);
             setActiveTab('deployments');
-            showToast(`Deployment started for ${project.name}.`, 'success');
+            showToast(`GitHub Actions deployment started for ${project.name}.`, 'success');
+            window.setTimeout(refreshDashboard, 1500);
         } catch (error) {
             showToast(error.message || 'Unable to trigger deployment.', 'error');
         }
@@ -200,7 +195,7 @@ function App() {
                         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.35fr]">
                             <ProjectList
                                 projects={projects}
-                                onTriggerDeploy={handleTriggerDeploy}
+                                onTriggerDeploy={setTriggerProject}
                                 onDeleteProject={handleDeleteProject}
                                 isLoading={isLoading}
                             />
@@ -238,7 +233,7 @@ function App() {
 
                         <ProjectList
                             projects={projects}
-                            onTriggerDeploy={handleTriggerDeploy}
+                            onTriggerDeploy={setTriggerProject}
                             onDeleteProject={handleDeleteProject}
                             isLoading={isLoading}
                         />
@@ -266,6 +261,12 @@ function App() {
                 isOpen={isConfirmModalOpen}
                 onClose={() => setConfirmModalOpen(false)}
                 onConfirm={handleConfirmAction}
+            />
+            <TriggerDeployModal
+                project={triggerProject}
+                isOpen={Boolean(triggerProject)}
+                onClose={() => setTriggerProject(null)}
+                onSubmit={(options) => handleTriggerDeploy(triggerProject, options)}
             />
         </div>
     );

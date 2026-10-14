@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import * as deploymentRepository from '../repositories/deploymentRepository.js';
 import * as projectRepository from '../repositories/projectRepository.js';
+import {dispatchDeployment} from './githubActionsService.js';
 
 const toPositiveInteger = (value, fieldName) => {
     const parsed = Number(value);
@@ -24,7 +25,7 @@ export const getDeployment = async (id) => {
     return deployment;
 };
 
-export const triggerDeployment = async ({projectId, versionTag, triggeredBy}) => {
+export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref, createTag, tagName}) => {
     const normalizedProjectId = toPositiveInteger(projectId, 'Project id');
     const project = await projectRepository.findById(normalizedProjectId);
     if (!project) {
@@ -39,14 +40,30 @@ export const triggerDeployment = async ({projectId, versionTag, triggeredBy}) =>
         throw error;
     }
 
-    return deploymentRepository.create({
-        projectId: normalizedProjectId,
-        triggeredBy: triggeredBy || project.user_id,
-        versionTag: versionTag.trim(),
-        commitSha: crypto.randomBytes(20).toString('hex'),
-        deployStatus: 'RUNNING',
-        healthStatus: 'UNKNOWN',
+    const repository = new URL(project.repo_url).pathname.replace(/^\/|\/$/g, '');
+    const configuredRepository = process.env.GITHUB_REPOSITORY;
+    if (configuredRepository && repository !== configuredRepository) {
+        const error = new Error('The project repository does not match the configured GitHub repository.');
+        error.status = 400;
+        throw error;
+    }
+
+    const dispatch = await dispatchDeployment({
+        ref: typeof ref === 'string' && ref.trim() ? ref.trim() : 'main',
+        createTag: Boolean(createTag),
+        tagName: typeof tagName === 'string' ? tagName.trim() : tagName,
     });
+
+    return {
+        projectId: normalizedProjectId,
+        triggered_by: triggeredBy || project.user_id,
+        version_tag: versionTag.trim(),
+        commit_sha: crypto.randomBytes(20).toString('hex'),
+        deploy_status: 'RUNNING',
+        health_status: 'UNKNOWN',
+        workflow_ref: dispatch.ref,
+        tag_created: dispatch.tag_created,
+    };
 };
 
 export const deleteDeployment = async (id) => {

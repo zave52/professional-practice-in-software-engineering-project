@@ -72,7 +72,7 @@ function ProjectList({projects, onTriggerDeploy, onDeleteProject, isLoading}) {
                 </span>
                                 <button
                                     type="button"
-                                    onClick={() => onTriggerDeploy(project.id)}
+                                    onClick={() => onTriggerDeploy(project)}
                                     className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
                                 >
                                     <Rocket className="h-4 w-4"/>

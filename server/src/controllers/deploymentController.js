@@ -22,6 +22,9 @@ export const triggerDeployment = async (req, res, next) => {
             projectId: req.body?.project_id,
             versionTag: req.body?.version_tag,
             triggeredBy: req.user?.id,
+            ref: req.body?.ref,
+            createTag: req.body?.create_tag,
+            tagName: req.body?.tag_name,
         });
         return res.status(201).json(deployment);
     } catch (error) {
