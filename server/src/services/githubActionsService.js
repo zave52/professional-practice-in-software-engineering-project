@@ -150,3 +150,18 @@ export const cancelWorkflowRun = async (runId) => {
     );
     return {id: Number(runId), cancelled: true};
 };
+
+export const rerunWorkflowRun = async (runId) => {
+    const repository = getRepository();
+    if (!/^\d+$/.test(String(runId))) {
+        const error = new Error('Workflow run id must be numeric.');
+        error.status = 400;
+        throw error;
+    }
+
+    await githubRequest(
+        `${githubApiBaseUrl}/repos/${repository}/actions/runs/${runId}/rerun`,
+        {method: 'POST'},
+    );
+    return {id: Number(runId), rerun: true};
+};

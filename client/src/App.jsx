@@ -13,6 +13,7 @@ import {
     deleteProject,
     getDeployments,
     getProjects,
+    rerunDeployment,
     triggerDeployment,
 } from './services/api';
 
@@ -82,6 +83,16 @@ function App() {
     const handleCancelDeployment = (deployment) => {
         setPendingAction({type: 'deployment', deployment});
         setConfirmModalOpen(true);
+    };
+
+    const handleRerunDeployment = async (deployment) => {
+        try {
+            await rerunDeployment(deployment.id);
+            showToast('GitHub Actions workflow rerun was requested.', 'success');
+            window.setTimeout(refreshDashboard, 1500);
+        } catch (error) {
+            showToast(error.message || 'Unable to rerun the deployment.', 'error');
+        }
     };
 
     const handleConfirmAction = async () => {
@@ -192,6 +203,7 @@ function App() {
                                 deployments={deployments}
                                 projects={projects}
                                 onCancelDeployment={handleCancelDeployment}
+                                onRerunDeployment={handleRerunDeployment}
                                 isLoading={isLoading}
                                 searchTerm={searchTerm}
                                 setSearchTerm={setSearchTerm}
@@ -233,6 +245,7 @@ function App() {
                         deployments={deployments}
                         projects={projects}
                         onCancelDeployment={handleCancelDeployment}
+                        onRerunDeployment={handleRerunDeployment}
                         isLoading={isLoading}
                         searchTerm={searchTerm}
                         setSearchTerm={setSearchTerm}

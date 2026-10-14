@@ -54,6 +54,10 @@ export async function deleteDeployment(deploymentId) {
     return request(`/api/deployments/${deploymentId}`, {method: 'DELETE'});
 }
 
+export async function rerunDeployment(deploymentId) {
+    return request(`/api/deployments/${deploymentId}/rerun`, {method: 'POST'});
+}
+
 export async function triggerDeployment(projectId, {versionTag, ref, createTag, tagName}) {
     return request('/api/deployments', {
         method: 'POST',

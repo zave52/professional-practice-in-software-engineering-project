@@ -39,3 +39,11 @@ export const deleteDeployment = async (req, res, next) => {
         return next(error);
     }
 };
+
+export const rerunDeployment = async (req, res, next) => {
+    try {
+        return res.status(200).json(await deploymentService.rerunDeployment(req.params.id));
+    } catch (error) {
+        return next(error);
+    }
+};
