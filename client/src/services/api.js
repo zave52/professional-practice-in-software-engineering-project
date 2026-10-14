@@ -47,6 +47,10 @@ export async function getDeployments() {
     return request('/api/pipelines');
 }
 
+export async function getDeploymentRefs() {
+    return request('/api/pipelines/refs');
+}
+
 export async function deleteDeployment(deploymentId) {
     return request(`/api/deployments/${deploymentId}`, {method: 'DELETE'});
 }

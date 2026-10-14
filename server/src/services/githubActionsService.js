@@ -87,6 +87,19 @@ export const getWorkflowRuns = async () => {
     }));
 };
 
+export const getRepositoryRefs = async () => {
+    const repository = getRepository();
+    const [branches, tags] = await Promise.all([
+        githubRequest(`${githubApiBaseUrl}/repos/${repository}/branches?per_page=100`),
+        githubRequest(`${githubApiBaseUrl}/repos/${repository}/tags?per_page=100`),
+    ]);
+
+    return {
+        branches: branches.map((branch) => branch.name),
+        tags: tags.map((tag) => tag.name),
+    };
+};
+
 export const dispatchDeployment = async ({ref, createTag = false, tagName}) => {
     const repository = getRepository();
     let dispatchRef = ref;

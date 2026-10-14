@@ -1,8 +1,9 @@
 import {Router} from 'express';
-import {getPipelines} from '../controllers/githubActionsController.js';
+import {getPipelines, getRefs} from '../controllers/githubActionsController.js';
 
 const router = Router();
 
 router.get('/', getPipelines);
+router.get('/refs', getRefs);
 
 export default router;
