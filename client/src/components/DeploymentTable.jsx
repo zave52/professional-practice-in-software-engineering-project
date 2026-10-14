@@ -99,7 +99,7 @@ function DeploymentTable({
             </div>
 
             <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm text-slate-200">
+                <table className="w-full table-fixed text-left text-sm text-slate-200">
                     <thead>
                     <tr className="border-b border-slate-800 text-slate-400">
                         <th className="px-3 py-3 font-medium">Version Tag</th>
@@ -129,23 +129,29 @@ function DeploymentTable({
                     ) : (
                         filteredDeployments.map((deployment) => (
                             <tr key={deployment.id} className="border-b border-slate-800/80 hover:bg-slate-800/40">
-                                <td className="px-3 py-4 font-medium text-white">
+                                <td className="w-56 max-w-56 px-3 py-4 font-medium text-white">
                                     {deployment.workflow_url ? (
                                         <a
                                             href={deployment.workflow_url}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="hover:text-sky-300 hover:underline"
+                                            title={deployment.workflow_name || deployment.version_tag}
+                                            className="block max-w-full truncate hover:text-sky-300 hover:underline"
                                         >
                                             {deployment.workflow_name || deployment.version_tag}
                                         </a>
                                     ) : (
-                                        deployment.version_tag
+                                        <span className="block max-w-full truncate" title={deployment.version_tag}>
+                                            {deployment.version_tag}
+                                        </span>
                                     )}
                                     {deployment.workflow_name && (
-                                        <span className="mt-1 block text-xs font-normal text-slate-400">
-                        {deployment.version_tag}
-                      </span>
+                                        <span
+                                            className="mt-1 block max-w-full truncate text-xs font-normal text-slate-400"
+                                            title={deployment.version_tag}
+                                        >
+                                            {deployment.version_tag}
+                                        </span>
                                     )}
                                 </td>
                                 <td className="px-3 py-4">
