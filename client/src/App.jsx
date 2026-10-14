@@ -25,6 +25,7 @@ function App() {
     const [isProjectModalOpen, setProjectModalOpen] = useState(false);
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
     const [triggerProject, setTriggerProject] = useState(null);
+    const [triggerError, setTriggerError] = useState('');
     const [pendingAction, setPendingAction] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [projectFilter, setProjectFilter] = useState('all');
@@ -130,6 +131,7 @@ function App() {
     };
 
     const handleTriggerDeploy = async (project, options) => {
+        setTriggerError('');
         try {
             await triggerDeployment(project.id, {
                 ...options,
@@ -140,7 +142,9 @@ function App() {
             showToast(`GitHub Actions deployment started for ${project.name}.`, 'success');
             window.setTimeout(refreshDashboard, 1500);
         } catch (error) {
-            showToast(error.message || 'Unable to trigger deployment.', 'error');
+            const message = error.message || 'Unable to trigger deployment.';
+            setTriggerError(message);
+            showToast(message, 'error');
         }
     };
 
@@ -155,7 +159,7 @@ function App() {
             <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
                 {toast && (
                     <div
-                        className={`fixed right-4 top-20 z-50 flex items-center gap-2 rounded-lg border px-4 py-3 shadow-lg ${
+                        className={`fixed right-4 top-20 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-2 rounded-lg border px-4 py-3 shadow-2xl ${
                             toast.type === 'success'
                                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
                                 : 'border-rose-500/40 bg-rose-500/10 text-rose-100'
@@ -266,7 +270,11 @@ function App() {
             <TriggerDeployModal
                 project={triggerProject}
                 isOpen={Boolean(triggerProject)}
-                onClose={() => setTriggerProject(null)}
+                error={triggerError}
+                onClose={() => {
+                    setTriggerError('');
+                    setTriggerProject(null);
+                }}
                 onSubmit={(options) => handleTriggerDeploy(triggerProject, options)}
             />
         </div>

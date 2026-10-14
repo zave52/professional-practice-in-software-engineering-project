@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {getDeploymentRefs} from '../services/api';
 
-function TriggerDeployModal({project, isOpen, onClose, onSubmit}) {
+function TriggerDeployModal({project, isOpen, error, onClose, onSubmit}) {
     const [refType, setRefType] = useState('branch');
     const [ref, setRef] = useState('');
     const [branches, setBranches] = useState([]);
@@ -65,6 +65,15 @@ function TriggerDeployModal({project, isOpen, onClose, onSubmit}) {
                   className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
                 <h2 className="text-xl font-semibold text-white">Trigger deployment</h2>
                 <p className="mt-2 text-sm text-slate-400">{project.name}</p>
+                {error && (
+                    <div
+                        className="mt-4 rounded-lg border border-rose-400/70 bg-rose-500/20 px-3 py-3 text-sm font-medium text-rose-100"
+                        role="alert"
+                    >
+                        <p className="font-semibold">Deployment failed</p>
+                        <p className="mt-1 break-words">{error}</p>
+                    </div>
+                )}
 
                 {isLoadingRefs && <p className="mt-5 text-sm text-slate-400">Loading repository references...</p>}
                 {refsError && <p className="mt-5 text-sm text-rose-300">{refsError}</p>}
