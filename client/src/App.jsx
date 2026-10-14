@@ -35,6 +35,7 @@ function App() {
     const [pendingAction, setPendingAction] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [environmentFilter, setEnvironmentFilter] = useState('all');
+    const [projectFilter, setProjectFilter] = useState('all');
     const [toast, setToast] = useState(null);
 
     const showToast = (message, type = 'info') => {
@@ -209,6 +210,8 @@ function App() {
                                 setSearchTerm={setSearchTerm}
                                 environmentFilter={environmentFilter}
                                 setEnvironmentFilter={setEnvironmentFilter}
+                                projectFilter={projectFilter}
+                                setProjectFilter={setProjectFilter}
                             />
                         </div>
                     </div>
@@ -250,6 +253,8 @@ function App() {
                         setSearchTerm={setSearchTerm}
                         environmentFilter={environmentFilter}
                         setEnvironmentFilter={setEnvironmentFilter}
+                        projectFilter={projectFilter}
+                        setProjectFilter={setProjectFilter}
                     />
                 )}
             </main>

@@ -60,7 +60,6 @@ export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref
         version_tag: versionTag.trim(),
         commit_sha: crypto.randomBytes(20).toString('hex'),
         deploy_status: 'RUNNING',
-        health_status: 'UNKNOWN',
         workflow_ref: dispatch.ref,
         tag_created: dispatch.tag_created,
     };

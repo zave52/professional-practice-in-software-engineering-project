@@ -4,13 +4,8 @@ import {useMemo, useState} from 'react';
 const statusStyles = {
     SUCCESS: 'bg-emerald-500/10 text-emerald-200 ring-1 ring-emerald-500/30',
     FAILED: 'bg-rose-500/10 text-rose-200 ring-1 ring-rose-500/30',
+    CANCELED: 'bg-slate-500/10 text-slate-200 ring-1 ring-slate-500/30',
     RUNNING: 'bg-amber-500/10 text-amber-200 ring-1 ring-amber-500/30',
-};
-
-const healthStyles = {
-    HEALTHY: 'bg-emerald-500/10 text-emerald-200 ring-1 ring-emerald-500/30',
-    UNHEALTHY: 'bg-rose-500/10 text-rose-200 ring-1 ring-rose-500/30',
-    UNKNOWN: 'bg-slate-700 text-slate-200 ring-1 ring-slate-600',
 };
 
 const formatDate = (value) =>
@@ -29,7 +24,9 @@ function DeploymentTable({
                              searchTerm,
                              setSearchTerm,
                              environmentFilter,
-                             setEnvironmentFilter
+                             setEnvironmentFilter,
+                             projectFilter,
+                             setProjectFilter
                          }) {
     const [copiedSha, setCopiedSha] = useState('');
 
@@ -45,10 +42,12 @@ function DeploymentTable({
                 deployment.commit_sha.toLowerCase().includes(normalizedSearch);
             const matchesEnvironment =
                 environmentFilter === 'all' || project?.environment === environmentFilter;
+            const matchesProject =
+                projectFilter === 'all' || String(deployment.project_id) === String(projectFilter);
 
-            return matchesSearch && matchesEnvironment;
+            return matchesSearch && matchesEnvironment && matchesProject;
         });
-    }, [deployments, environmentFilter, projects, searchTerm]);
+    }, [deployments, environmentFilter, projectFilter, projects, searchTerm]);
 
     const handleCopy = async (commitSha) => {
         try {
@@ -86,6 +85,16 @@ function DeploymentTable({
                         <option value="staging">Staging</option>
                         <option value="development">Development</option>
                     </select>
+                    <select
+                        value={projectFilter}
+                        onChange={(event) => setProjectFilter(event.target.value)}
+                        className="rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                    >
+                        <option value="all">All projects</option>
+                        {projects.map((project) => (
+                            <option key={project.id} value={project.id}>{project.name}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
@@ -97,7 +106,6 @@ function DeploymentTable({
                         <th className="px-3 py-3 font-medium">Commit SHA</th>
                         <th className="px-3 py-3 font-medium">Triggered By</th>
                         <th className="px-3 py-3 font-medium">Status</th>
-                        <th className="px-3 py-3 font-medium">Health</th>
                         <th className="px-3 py-3 font-medium">Timestamp</th>
                         <th className="px-3 py-3 font-medium">Actions</th>
                     </tr>
@@ -105,7 +113,7 @@ function DeploymentTable({
                     <tbody>
                     {isLoading ? (
                         <tr>
-                            <td colSpan="7" className="px-3 py-8">
+                            <td colSpan="6" className="px-3 py-8">
                                 <div className="flex items-center justify-center gap-3 text-slate-300">
                                     <LoaderCircle className="h-5 w-5 animate-spin text-sky-300"/>
                                     Loading deployments...
@@ -114,7 +122,7 @@ function DeploymentTable({
                         </tr>
                     ) : filteredDeployments.length === 0 ? (
                         <tr>
-                            <td colSpan="7" className="px-3 py-8 text-center text-slate-400">
+                            <td colSpan="6" className="px-3 py-8 text-center text-slate-400">
                                 No deployments match the current search.
                             </td>
                         </tr>
@@ -161,12 +169,6 @@ function DeploymentTable({
                     <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[deployment.deploy_status] || statusStyles.RUNNING}`}>
                       {deployment.deploy_status}
-                    </span>
-                                </td>
-                                <td className="px-3 py-4">
-                    <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${healthStyles[deployment.health_status] || healthStyles.UNKNOWN}`}>
-                      {deployment.health_status}
                     </span>
                                 </td>
                                 <td className="px-3 py-4 text-slate-300">{formatDate(deployment.deployed_at)}</td>

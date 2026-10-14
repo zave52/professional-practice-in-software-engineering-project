@@ -44,7 +44,13 @@ const mapRunStatus = (run) => {
     if (run.status !== 'completed') {
         return 'RUNNING';
     }
-    return run.conclusion === 'success' ? 'SUCCESS' : 'FAILED';
+    if (run.conclusion === 'success') {
+        return 'SUCCESS';
+    }
+    if (run.conclusion === 'cancelled' || run.conclusion === 'skipped') {
+        return 'CANCELED';
+    }
+    return 'FAILED';
 };
 
 export const getWorkflowRuns = async (configuredRepository) => {
@@ -75,12 +81,6 @@ export const getWorkflowRuns = async (configuredRepository) => {
         version_tag: run.head_branch || run.display_title || 'workflow run',
         commit_sha: run.head_sha,
         deploy_status: mapRunStatus(run),
-        health_status:
-            run.status === 'completed' && run.conclusion === 'success'
-                ? 'HEALTHY'
-                : run.status === 'completed'
-                    ? 'UNHEALTHY'
-                    : 'UNKNOWN',
         deployed_at: run.updated_at || run.created_at,
         workflow_url: run.html_url,
         event: run.event,
