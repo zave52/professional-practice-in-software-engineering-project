@@ -5,14 +5,20 @@ export const getPipelines = async (req, res, next) => {
     try {
         const projects = await projectRepository.findAll();
         if (projects.length === 0) {
-            return res.status(200).json(await getWorkflowRuns());
+            const deployments = await getWorkflowRuns();
+            return res.status(200).json(deployments.sort(
+                (left, right) => new Date(right.deployed_at) - new Date(left.deployed_at),
+            ));
         }
         const runsByProject = await Promise.all(projects.map(async (project) => {
             const repository = new URL(project.repo_url).pathname.replace(/^\/|\/$/g, '');
             const runs = await getWorkflowRuns(repository);
             return runs.map((run) => ({...run, project_id: project.id}));
         }));
-        return res.status(200).json(runsByProject.flat());
+        const deployments = runsByProject.flat().sort(
+            (left, right) => new Date(right.deployed_at) - new Date(left.deployed_at),
+        );
+        return res.status(200).json(deployments);
     } catch (error) {
         return next(error);
     }

@@ -81,7 +81,7 @@ export const getWorkflowRuns = async (configuredRepository) => {
         version_tag: run.head_branch || run.display_title || 'workflow run',
         commit_sha: run.head_sha,
         deploy_status: mapRunStatus(run),
-        deployed_at: run.updated_at || run.created_at,
+        deployed_at: run.created_at || run.updated_at,
         workflow_url: run.html_url,
         event: run.event,
         run_number: run.run_number,
