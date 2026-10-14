@@ -36,7 +36,7 @@ const githubRequest = async (url, options = {}) => {
         error.status = response.status === 404 ? 404 : 502;
         throw error;
     }
-    return response.status === 204 ? null : response.json();
+    return [202, 204].includes(response.status) ? null : response.json();
 };
 
 const mapRunStatus = (run) => {
@@ -132,4 +132,19 @@ export const dispatchDeployment = async ({ref, createTag = false, tagName}) => {
     );
 
     return {repository, ref: dispatchRef, tag_created: createTag};
+};
+
+export const cancelWorkflowRun = async (runId) => {
+    const repository = getRepository();
+    if (!/^\d+$/.test(String(runId))) {
+        const error = new Error('Workflow run id must be numeric.');
+        error.status = 400;
+        throw error;
+    }
+
+    await githubRequest(
+        `${githubApiBaseUrl}/repos/${repository}/actions/runs/${runId}/cancel`,
+        {method: 'POST'},
+    );
+    return {id: Number(runId), cancelled: true};
 };

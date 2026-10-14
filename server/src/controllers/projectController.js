@@ -19,7 +19,7 @@ export const getProject = async (req, res, next) => {
 export const createProject = async (req, res, next) => {
     try {
         const project = await projectService.createProject({
-            userId: req.user.id,
+            userId: req.user?.id,
             name: req.body?.name,
             repoUrl: req.body?.repo_url,
             environment: req.body?.environment,

@@ -171,14 +171,16 @@ function DeploymentTable({
                                 </td>
                                 <td className="px-3 py-4 text-slate-300">{formatDate(deployment.deployed_at)}</td>
                                 <td className="px-3 py-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => onCancelDeployment(deployment)}
-                                        className="inline-flex items-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-2.5 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-500/15"
-                                    >
-                                        <XCircle className="h-4 w-4"/>
-                                        Cancel
-                                    </button>
+                                    {deployment.deploy_status === 'RUNNING' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onCancelDeployment(deployment)}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-2.5 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-500/15"
+                                        >
+                                            <XCircle className="h-4 w-4"/>
+                                            Cancel
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))

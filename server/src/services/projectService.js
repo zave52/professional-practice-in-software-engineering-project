@@ -64,7 +64,8 @@ export const createProject = async ({userId, name, repoUrl, environment}) => {
         environment,
     };
     validateProject(normalized);
-    return projectRepository.create({userId, ...normalized});
+    const ownerId = userId || await projectRepository.ensureDefaultUser();
+    return projectRepository.create({userId: ownerId, ...normalized});
 };
 
 export const deleteProject = async (id) => {

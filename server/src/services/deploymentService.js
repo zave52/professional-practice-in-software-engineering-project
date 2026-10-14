@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import * as deploymentRepository from '../repositories/deploymentRepository.js';
 import * as projectRepository from '../repositories/projectRepository.js';
-import {dispatchDeployment} from './githubActionsService.js';
+import {cancelWorkflowRun, dispatchDeployment} from './githubActionsService.js';
 
 const toPositiveInteger = (value, fieldName) => {
     const parsed = Number(value);
@@ -67,11 +67,5 @@ export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref
 };
 
 export const deleteDeployment = async (id) => {
-    const deployment = await deploymentRepository.remove(toPositiveInteger(id, 'Deployment id'));
-    if (!deployment) {
-        const error = new Error('Deployment not found.');
-        error.status = 404;
-        throw error;
-    }
-    return deployment;
+    return cancelWorkflowRun(toPositiveInteger(id, 'Deployment id'));
 };
