@@ -6,6 +6,7 @@ on:
       - main
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -58,10 +59,12 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          script_stop: true
+          envs: GITHUB_TOKEN
           script: |
             set -e
             cd /opt/cicd-dashboard
             git fetch origin main
             git reset --hard origin/main
-            docker compose up -d --build
+            docker compose up -d --build --remove-orphans
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

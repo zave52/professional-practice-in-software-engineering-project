@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import {Router} from 'express';
 import auth from '../middleware/auth.js';
 import {
-  deleteDeployment,
-  getDeployment,
-  getDeployments,
-  triggerDeployment,
+    deleteDeployment,
+    getDeployment,
+    getDeployments,
+    triggerDeployment,
 } from '../controllers/deploymentController.js';
 
 const router = Router();
