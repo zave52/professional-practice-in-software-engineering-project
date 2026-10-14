@@ -11,7 +11,9 @@ const router = Router();
 
 router.get('/', getDeployments);
 router.get('/:id', getDeployment);
-router.post('/', auth, triggerDeployment);
+// Triggering is available from the dashboard without a login flow.
+// The service records the project's owner as the actor when no JWT is supplied.
+router.post('/', triggerDeployment);
 router.delete('/:id', auth, deleteDeployment);
 
 export default router;

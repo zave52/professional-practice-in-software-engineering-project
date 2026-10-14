@@ -21,7 +21,7 @@ export const triggerDeployment = async (req, res, next) => {
         const deployment = await deploymentService.triggerDeployment({
             projectId: req.body?.project_id,
             versionTag: req.body?.version_tag,
-            triggeredBy: req.user.id,
+            triggeredBy: req.user?.id,
         });
         return res.status(201).json(deployment);
     } catch (error) {

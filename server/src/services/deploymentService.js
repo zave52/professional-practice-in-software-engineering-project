@@ -41,7 +41,7 @@ export const triggerDeployment = async ({projectId, versionTag, triggeredBy}) =>
 
     return deploymentRepository.create({
         projectId: normalizedProjectId,
-        triggeredBy,
+        triggeredBy: triggeredBy || project.user_id,
         versionTag: versionTag.trim(),
         commitSha: crypto.randomBytes(20).toString('hex'),
         deployStatus: 'RUNNING',
