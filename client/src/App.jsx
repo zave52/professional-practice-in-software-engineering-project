@@ -88,7 +88,7 @@ function App() {
 
     const handleRerunDeployment = async (deployment) => {
         try {
-            await rerunDeployment(deployment.id);
+            await rerunDeployment(deployment.id, deployment.project_id);
             showToast('GitHub Actions workflow rerun was requested.', 'success');
             window.setTimeout(refreshDashboard, 1500);
         } catch (error) {
@@ -116,7 +116,10 @@ function App() {
             }
 
             if (pendingAction.type === 'deployment') {
-                await deleteDeployment(pendingAction.deployment.id);
+                await deleteDeployment(
+                    pendingAction.deployment.id,
+                    pendingAction.deployment.project_id,
+                );
                 setDeployments((currentDeployments) =>
                     currentDeployments.filter((deployment) => Number(deployment.id) !== Number(pendingAction.deployment.id)),
                 );

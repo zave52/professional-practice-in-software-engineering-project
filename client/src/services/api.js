@@ -50,12 +50,18 @@ export async function getDeploymentRefs(projectId) {
     return request(`/api/pipelines/refs?project_id=${encodeURIComponent(projectId)}`);
 }
 
-export async function deleteDeployment(deploymentId) {
-    return request(`/api/deployments/${deploymentId}`, {method: 'DELETE'});
+export async function deleteDeployment(deploymentId, projectId) {
+    return request(`/api/deployments/${deploymentId}`, {
+        method: 'DELETE',
+        body: JSON.stringify({project_id: projectId}),
+    });
 }
 
-export async function rerunDeployment(deploymentId) {
-    return request(`/api/deployments/${deploymentId}/rerun`, {method: 'POST'});
+export async function rerunDeployment(deploymentId, projectId) {
+    return request(`/api/deployments/${deploymentId}/rerun`, {
+        method: 'POST',
+        body: JSON.stringify({project_id: projectId}),
+    });
 }
 
 export async function triggerDeployment(projectId, {versionTag, ref, createTag, tagName}) {

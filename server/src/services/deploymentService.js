@@ -41,14 +41,9 @@ export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref
     }
 
     const repository = new URL(project.repo_url).pathname.replace(/^\/|\/$/g, '');
-    const configuredRepository = process.env.GITHUB_REPOSITORY;
-    if (configuredRepository && repository !== configuredRepository) {
-        const error = new Error('The project repository does not match the configured GitHub repository.');
-        error.status = 400;
-        throw error;
-    }
 
     const dispatch = await dispatchDeployment({
+        repository,
         ref: typeof ref === 'string' && ref.trim() ? ref.trim() : 'main',
         createTag: Boolean(createTag),
         tagName: typeof tagName === 'string' ? tagName.trim() : tagName,
@@ -65,10 +60,24 @@ export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref
     };
 };
 
-export const deleteDeployment = async (id) => {
-    return cancelWorkflowRun(toPositiveInteger(id, 'Deployment id'));
+export const deleteDeployment = async (id, projectId) => {
+    const project = await projectRepository.findById(toPositiveInteger(projectId, 'Project id'));
+    if (!project) {
+        const error = new Error('Project not found.');
+        error.status = 404;
+        throw error;
+    }
+    const repository = new URL(project.repo_url).pathname.replace(/^\/|\/$/g, '');
+    return cancelWorkflowRun(toPositiveInteger(id, 'Deployment id'), repository);
 };
 
-export const rerunDeployment = async (id) => {
-    return rerunWorkflowRun(toPositiveInteger(id, 'Deployment id'));
+export const rerunDeployment = async (id, projectId) => {
+    const project = await projectRepository.findById(toPositiveInteger(projectId, 'Project id'));
+    if (!project) {
+        const error = new Error('Project not found.');
+        error.status = 404;
+        throw error;
+    }
+    const repository = new URL(project.repo_url).pathname.replace(/^\/|\/$/g, '');
+    return rerunWorkflowRun(toPositiveInteger(id, 'Deployment id'), repository);
 };

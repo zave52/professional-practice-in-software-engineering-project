@@ -34,7 +34,10 @@ export const triggerDeployment = async (req, res, next) => {
 
 export const deleteDeployment = async (req, res, next) => {
     try {
-        return res.status(200).json(await deploymentService.deleteDeployment(req.params.id));
+        return res.status(200).json(await deploymentService.deleteDeployment(
+            req.params.id,
+            req.body?.project_id,
+        ));
     } catch (error) {
         return next(error);
     }
@@ -42,7 +45,10 @@ export const deleteDeployment = async (req, res, next) => {
 
 export const rerunDeployment = async (req, res, next) => {
     try {
-        return res.status(200).json(await deploymentService.rerunDeployment(req.params.id));
+        return res.status(200).json(await deploymentService.rerunDeployment(
+            req.params.id,
+            req.body?.project_id,
+        ));
     } catch (error) {
         return next(error);
     }

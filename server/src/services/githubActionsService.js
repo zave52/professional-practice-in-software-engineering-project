@@ -102,8 +102,8 @@ export const getRepositoryRefs = async (configuredRepository) => {
     };
 };
 
-export const dispatchDeployment = async ({ref, createTag = false, tagName}) => {
-    const repository = getRepository();
+export const dispatchDeployment = async ({repository: configuredRepository, ref, createTag = false, tagName}) => {
+    const repository = getRepository(configuredRepository);
     let dispatchRef = ref;
 
     if (createTag) {
@@ -136,8 +136,8 @@ export const dispatchDeployment = async ({ref, createTag = false, tagName}) => {
     return {repository, ref: dispatchRef, tag_created: createTag};
 };
 
-export const cancelWorkflowRun = async (runId) => {
-    const repository = getRepository();
+export const cancelWorkflowRun = async (runId, configuredRepository) => {
+    const repository = getRepository(configuredRepository);
     if (!/^\d+$/.test(String(runId))) {
         const error = new Error('Workflow run id must be numeric.');
         error.status = 400;
@@ -151,8 +151,8 @@ export const cancelWorkflowRun = async (runId) => {
     return {id: Number(runId), cancelled: true};
 };
 
-export const rerunWorkflowRun = async (runId) => {
-    const repository = getRepository();
+export const rerunWorkflowRun = async (runId, configuredRepository) => {
+    const repository = getRepository(configuredRepository);
     if (!/^\d+$/.test(String(runId))) {
         const error = new Error('Workflow run id must be numeric.');
         error.status = 400;
