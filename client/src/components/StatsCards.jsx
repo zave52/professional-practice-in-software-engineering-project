@@ -1,13 +1,11 @@
-import {Activity, ArrowUpRight, CheckCircle2, FolderGit2, ShieldAlert, ShieldCheck,} from 'lucide-react';
+import {Activity, ArrowUpRight, CheckCircle2, FolderGit2,} from 'lucide-react';
 
-function StatsCards({projects, deployments, systemHealth, isLoading}) {
+function StatsCards({projects, deployments, isLoading}) {
     const successRate = deployments.length
         ? (deployments.filter((deployment) => deployment.deploy_status === 'SUCCESS').length / deployments.length) * 100
         : 0;
 
     const activeDeployments = deployments.filter((deployment) => deployment.deploy_status === 'RUNNING').length;
-    const systemStatus = systemHealth?.status === 'HEALTHY' ? 'Healthy' : 'Degraded';
-
     const cards = [
         {
             label: 'Total Projects',
@@ -30,20 +28,10 @@ function StatsCards({projects, deployments, systemHealth, isLoading}) {
             icon: CheckCircle2,
             accent: 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30',
         },
-        {
-            label: 'System Health',
-            value: systemStatus,
-            helper: `Uptime ${systemHealth?.uptime || '99.98%'}`,
-            icon: systemStatus === 'Healthy' ? ShieldCheck : ShieldAlert,
-            accent:
-                systemStatus === 'Healthy'
-                    ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30'
-                    : 'bg-rose-500/15 text-rose-300 ring-rose-500/30',
-        },
     ];
 
     return (
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {cards.map(({label, value, helper, icon: Icon, accent}) => (
                 <div
                     key={label}

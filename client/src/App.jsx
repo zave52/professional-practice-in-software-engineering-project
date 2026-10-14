@@ -13,28 +13,19 @@ import {
     deleteProject,
     getDeployments,
     getProjects,
-    getSystemHealth,
     triggerDeployment,
 } from './services/api';
-
-const defaultHealth = {
-    status: 'HEALTHY',
-    uptime: '99.98%',
-    version: '1.0.0',
-};
 
 function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [projects, setProjects] = useState([]);
     const [deployments, setDeployments] = useState([]);
-    const [systemHealth, setSystemHealth] = useState(defaultHealth);
     const [isLoading, setIsLoading] = useState(true);
     const [isProjectModalOpen, setProjectModalOpen] = useState(false);
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
     const [triggerProject, setTriggerProject] = useState(null);
     const [pendingAction, setPendingAction] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [environmentFilter, setEnvironmentFilter] = useState('all');
     const [projectFilter, setProjectFilter] = useState('all');
     const [toast, setToast] = useState(null);
 
@@ -48,15 +39,13 @@ function App() {
         setIsLoading(true);
 
         try {
-            const [projectData, deploymentData, healthData] = await Promise.all([
+            const [projectData, deploymentData] = await Promise.all([
                 getProjects(),
                 getDeployments(),
-                getSystemHealth(),
             ]);
 
             setProjects(projectData);
             setDeployments(deploymentData);
-            setSystemHealth(healthData);
             if (deploymentData.some((deployment) => deployment.workflow_url)) {
                 showToast('Live GitHub Actions pipeline runs loaded.', 'success');
             }
@@ -150,7 +139,6 @@ function App() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 onAddProject={() => setProjectModalOpen(true)}
-                systemHealth={systemHealth}
             />
 
             <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -189,7 +177,6 @@ function App() {
                         <StatsCards
                             projects={projects}
                             deployments={deployments}
-                            systemHealth={systemHealth}
                             isLoading={isLoading}
                         />
 
@@ -208,8 +195,6 @@ function App() {
                                 isLoading={isLoading}
                                 searchTerm={searchTerm}
                                 setSearchTerm={setSearchTerm}
-                                environmentFilter={environmentFilter}
-                                setEnvironmentFilter={setEnvironmentFilter}
                                 projectFilter={projectFilter}
                                 setProjectFilter={setProjectFilter}
                             />
@@ -251,8 +236,6 @@ function App() {
                         isLoading={isLoading}
                         searchTerm={searchTerm}
                         setSearchTerm={setSearchTerm}
-                        environmentFilter={environmentFilter}
-                        setEnvironmentFilter={setEnvironmentFilter}
                         projectFilter={projectFilter}
                         setProjectFilter={setProjectFilter}
                     />

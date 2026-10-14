@@ -22,7 +22,6 @@ export const createProject = async (req, res, next) => {
             userId: req.user?.id,
             name: req.body?.name,
             repoUrl: req.body?.repo_url,
-            environment: req.body?.environment,
         });
         return res.status(201).json(project);
     } catch (error) {

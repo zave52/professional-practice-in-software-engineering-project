@@ -34,7 +34,6 @@ export async function createProject(projectData) {
         body: JSON.stringify({
             name: projectData.name,
             repo_url: projectData.repo_url,
-            environment: projectData.environment,
         }),
     });
 }
@@ -66,13 +65,4 @@ export async function triggerDeployment(projectId, {versionTag, ref, createTag, 
             tag_name: tagName,
         }),
     });
-}
-
-export async function getSystemHealth() {
-    const health = await request('/api/health');
-    return {
-        status: health.status === 'ok' ? 'HEALTHY' : 'DEGRADED',
-        uptime: health.uptime || '—',
-        version: health.version || '1.0.0',
-    };
 }

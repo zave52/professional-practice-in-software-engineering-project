@@ -23,8 +23,6 @@ function DeploymentTable({
                              isLoading,
                              searchTerm,
                              setSearchTerm,
-                             environmentFilter,
-                             setEnvironmentFilter,
                              projectFilter,
                              setProjectFilter
                          }) {
@@ -40,14 +38,12 @@ function DeploymentTable({
                 !normalizedSearch ||
                 deployment.version_tag.toLowerCase().includes(normalizedSearch) ||
                 deployment.commit_sha.toLowerCase().includes(normalizedSearch);
-            const matchesEnvironment =
-                environmentFilter === 'all' || project?.environment === environmentFilter;
             const matchesProject =
                 projectFilter === 'all' || String(deployment.project_id) === String(projectFilter);
 
-            return matchesSearch && matchesEnvironment && matchesProject;
+            return matchesSearch && matchesProject;
         });
-    }, [deployments, environmentFilter, projectFilter, projects, searchTerm]);
+    }, [deployments, projectFilter, projects, searchTerm]);
 
     const handleCopy = async (commitSha) => {
         try {
@@ -75,16 +71,6 @@ function DeploymentTable({
                         placeholder="Search by version or commit"
                         className="rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
                     />
-                    <select
-                        value={environmentFilter}
-                        onChange={(event) => setEnvironmentFilter(event.target.value)}
-                        className="rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
-                    >
-                        <option value="all">All environments</option>
-                        <option value="production">Production</option>
-                        <option value="staging">Staging</option>
-                        <option value="development">Development</option>
-                    </select>
                     <select
                         value={projectFilter}
                         onChange={(event) => setProjectFilter(event.target.value)}

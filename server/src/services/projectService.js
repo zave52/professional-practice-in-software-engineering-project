@@ -1,6 +1,5 @@
 import * as projectRepository from '../repositories/projectRepository.js';
 
-const environments = new Set(['production', 'staging', 'development']);
 const githubUrlPattern = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/.*)?$/;
 
 const toPositiveInteger = (value, fieldName) => {
@@ -13,7 +12,7 @@ const toPositiveInteger = (value, fieldName) => {
     return parsed;
 };
 
-const validateProject = ({name, repoUrl, environment}) => {
+const validateProject = ({name, repoUrl}) => {
     if (typeof name !== 'string' || name.trim().length < 3) {
         const error = new Error('Project name must be at least 3 characters long.');
         error.status = 400;
@@ -21,11 +20,6 @@ const validateProject = ({name, repoUrl, environment}) => {
     }
     if (typeof repoUrl !== 'string' || !githubUrlPattern.test(repoUrl.trim())) {
         const error = new Error('Repository URL must use the https://github.com/... format.');
-        error.status = 400;
-        throw error;
-    }
-    if (!environments.has(environment)) {
-        const error = new Error('Environment must be production, staging, or development.');
         error.status = 400;
         throw error;
     }
@@ -57,11 +51,10 @@ export const getProject = async (id) => {
     return project;
 };
 
-export const createProject = async ({userId, name, repoUrl, environment}) => {
+export const createProject = async ({userId, name, repoUrl}) => {
     const normalized = {
         name: typeof name === 'string' ? name.trim() : name,
         repoUrl: typeof repoUrl === 'string' ? repoUrl.trim() : repoUrl,
-        environment,
     };
     validateProject(normalized);
     const ownerId = userId || await projectRepository.ensureDefaultUser();

@@ -1,9 +1,8 @@
 import {Menu, Plus, Server, X} from 'lucide-react';
 import {useState} from 'react';
 
-function Navbar({activeTab, onTabChange, onAddProject, systemHealth}) {
+function Navbar({activeTab, onTabChange, onAddProject}) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const isHealthy = systemHealth?.status === 'HEALTHY';
 
     const navItems = [
         {id: 'dashboard', label: 'Dashboard'},
@@ -51,18 +50,6 @@ function Navbar({activeTab, onTabChange, onAddProject, systemHealth}) {
                         <Plus className="h-4 w-4"/>
                         New Project
                     </button>
-
-                    <div
-                        className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-200">
-            <span className={`relative flex h-2.5 w-2.5 rounded-full ${isHealthy ? 'bg-emerald-400' : 'bg-rose-400'}`}>
-              <span
-                  className={`absolute inset-0 animate-ping rounded-full ${
-                      isHealthy ? 'bg-emerald-400/60' : 'bg-rose-400/60'
-                  }`}
-              />
-            </span>
-                        <span className="hidden sm:inline">{isHealthy ? 'System Healthy' : 'System Degraded'}</span>
-                    </div>
 
                     <button
                         type="button"

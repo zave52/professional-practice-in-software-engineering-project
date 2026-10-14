@@ -25,4 +25,19 @@ export const checkDatabaseConnection = async () => {
     await pool.query('SELECT 1');
     return true;
 };
+export const migrateObsoleteColumns = async () => {
+    await pool.query(`
+        ALTER TABLE projects
+            DROP COLUMN IF EXISTS environment;
+        ALTER TABLE deployments
+            DROP COLUMN IF EXISTS health_status;
+        ALTER TABLE deployments
+            DROP CONSTRAINT IF EXISTS chk_health_status;
+        ALTER TABLE deployments
+            DROP CONSTRAINT IF EXISTS chk_deploy_status;
+        ALTER TABLE deployments
+            ADD CONSTRAINT chk_deploy_status
+                CHECK (deploy_status IN ('SUCCESS', 'FAILED', 'RUNNING', 'CANCELED'));
+    `);
+};
 export default pool;

@@ -7,16 +7,15 @@ const deploymentColumns = `
   d.version_tag,
   d.commit_sha,
   d.deploy_status,
-  d.health_status,
   d.deployed_at
 `;
 
 export const findAll = async () => {
     const result = await query(`
-    SELECT ${deploymentColumns}
-    FROM deployments d
-    ORDER BY d.deployed_at DESC
-  `);
+        SELECT ${deploymentColumns}
+        FROM deployments d
+        ORDER BY d.deployed_at DESC
+    `);
     return result.rows;
 };
 
@@ -35,7 +34,6 @@ export const create = async ({
                                  versionTag,
                                  commitSha,
                                  deployStatus,
-                                 healthStatus,
                              }) => {
     const result = await query(`
     INSERT INTO deployments (
@@ -43,13 +41,12 @@ export const create = async ({
       triggered_by,
       version_tag,
       commit_sha,
-      deploy_status,
-      health_status
+      deploy_status
     )
-    VALUES ($1, $2, $3, $4, $5, $6)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING id, project_id, triggered_by, version_tag, commit_sha,
-      deploy_status, health_status, deployed_at
-  `, [projectId, triggeredBy, versionTag, commitSha, deployStatus, healthStatus]);
+      deploy_status, deployed_at
+  `, [projectId, triggeredBy, versionTag, commitSha, deployStatus]);
     return result.rows[0];
 };
 

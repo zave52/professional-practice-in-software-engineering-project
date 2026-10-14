@@ -5,7 +5,6 @@ const projectColumns = `
   p.user_id,
   p.name,
   p.repo_url,
-  p.environment,
   p.created_at
 `;
 
@@ -20,7 +19,6 @@ export const findAll = async () => {
 
 export const ensureConfiguredProject = async ({
                                                   repository,
-                                                  environment = 'production',
                                               }) => {
     const repositoryName = repository.split('/')[1];
     const repoUrl = `https://github.com/${repository}`;
@@ -40,13 +38,12 @@ export const ensureConfiguredProject = async ({
     `, [roleResult.rows[0].id]);
 
     const projectResult = await query(`
-        INSERT INTO projects (user_id, name, repo_url, environment)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO projects (user_id, name, repo_url)
+        VALUES ($1, $2, $3)
         ON CONFLICT (name) DO UPDATE
-            SET repo_url    = EXCLUDED.repo_url,
-                environment = EXCLUDED.environment
-        RETURNING id, user_id, name, repo_url, environment, created_at
-    `, [userResult.rows[0].id, repositoryName, repoUrl, environment]);
+            SET repo_url = EXCLUDED.repo_url
+        RETURNING id, user_id, name, repo_url, created_at
+    `, [userResult.rows[0].id, repositoryName, repoUrl]);
 
     return projectResult.rows[0];
 };
@@ -78,12 +75,12 @@ export const findById = async (id) => {
     return result.rows[0] || null;
 };
 
-export const create = async ({userId, name, repoUrl, environment}) => {
+export const create = async ({userId, name, repoUrl}) => {
     const result = await query(`
-        INSERT INTO projects (user_id, name, repo_url, environment)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, user_id, name, repo_url, environment, created_at
-    `, [userId, name, repoUrl, environment]);
+        INSERT INTO projects (user_id, name, repo_url)
+        VALUES ($1, $2, $3)
+        RETURNING id, user_id, name, repo_url, created_at
+    `, [userId, name, repoUrl]);
     return result.rows[0];
 };
 

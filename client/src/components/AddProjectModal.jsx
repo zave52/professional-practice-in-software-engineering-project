@@ -4,10 +4,7 @@ import {useEffect, useState} from 'react';
 const initialFormState = {
     name: '',
     repo_url: '',
-    environment: 'production',
 };
-
-const validEnvironments = ['production', 'staging', 'development'];
 
 function AddProjectModal({isOpen, onClose, onSubmit}) {
     const [form, setForm] = useState(initialFormState);
@@ -35,10 +32,6 @@ function AddProjectModal({isOpen, onClose, onSubmit}) {
             nextErrors.repo_url = 'Repository URL must follow the https://github.com/... format.';
         }
 
-        if (!validEnvironments.includes(form.environment)) {
-            nextErrors.environment = 'Please choose a valid environment.';
-        }
-
         setErrors(nextErrors);
         return Object.keys(nextErrors).length === 0;
     };
@@ -53,7 +46,6 @@ function AddProjectModal({isOpen, onClose, onSubmit}) {
         onSubmit({
             name: form.name.trim(),
             repo_url: form.repo_url.trim(),
-            environment: form.environment,
         });
     };
 
@@ -99,20 +91,6 @@ function AddProjectModal({isOpen, onClose, onSubmit}) {
                             placeholder="https://github.com/acme/project-name"
                         />
                         {errors.repo_url && <p className="mt-2 text-xs text-rose-300">{errors.repo_url}</p>}
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-200">Environment</label>
-                        <select
-                            value={form.environment}
-                            onChange={(event) => setForm((current) => ({...current, environment: event.target.value}))}
-                            className="w-full rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-white focus:border-sky-500 focus:outline-none"
-                        >
-                            <option value="production">Production</option>
-                            <option value="staging">Staging</option>
-                            <option value="development">Development</option>
-                        </select>
-                        {errors.environment && <p className="mt-2 text-xs text-rose-300">{errors.environment}</p>}
                     </div>
 
                     <div className="flex items-center justify-end gap-3 pt-2">

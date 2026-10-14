@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
-import {checkDatabaseConnection} from './db.js';
+import {migrateObsoleteColumns} from './db.js';
 import deploymentRoutes from './routes/deploymentRoutes.js';
 import pipelineRoutes from './routes/pipelineRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
@@ -13,21 +13,6 @@ app.use(cors({
     origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
 }));
 app.use(express.json({limit: '1mb'}));
-
-app.get('/api/health', async (req, res, next) => {
-    try {
-        await checkDatabaseConnection();
-        return res.status(200).json({
-            status: 'ok',
-            timestamp: new Date().toISOString(),
-            db: 'connected',
-        });
-    } catch (error) {
-        error.status = 503;
-        error.message = 'Database is unavailable.';
-        return next(error);
-    }
-});
 
 app.use('/api/projects', projectRoutes);
 app.use('/api/deployments', deploymentRoutes);
@@ -55,9 +40,14 @@ app.use((error, req, res, next) => {
 });
 
 if (process.env.NODE_ENV !== 'test') {
-    app.listen(port, () => {
-        console.log(`API server listening on port ${port}`);
-    });
+    migrateObsoleteColumns()
+        .then(() => app.listen(port, () => {
+            console.log(`API server listening on port ${port}`);
+        }))
+        .catch((error) => {
+            console.error('Database migration failed:', error);
+            process.exitCode = 1;
+        });
 }
 
 export default app;

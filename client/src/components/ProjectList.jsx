@@ -1,11 +1,5 @@
 import {ExternalLink, Rocket, Trash2} from 'lucide-react';
 
-const environmentStyles = {
-    production: 'bg-emerald-500/10 text-emerald-200 ring-1 ring-emerald-500/30',
-    staging: 'bg-sky-500/10 text-sky-200 ring-1 ring-sky-500/30',
-    development: 'bg-violet-500/10 text-violet-200 ring-1 ring-violet-500/30',
-};
-
 function ProjectList({projects, onTriggerDeploy, onDeleteProject, isLoading}) {
     return (
         <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/20">
@@ -40,11 +34,6 @@ function ProjectList({projects, onTriggerDeploy, onDeleteProject, isLoading}) {
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <h3 className="text-lg font-semibold text-white">{project.name}</h3>
-                                    <div
-                                        className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
-                                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-400"/>
-                                        {project.environment}
-                                    </div>
                                 </div>
                                 <button
                                     type="button"
@@ -65,11 +54,7 @@ function ProjectList({projects, onTriggerDeploy, onDeleteProject, isLoading}) {
                                 </a>
                             </div>
 
-                            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${environmentStyles[project.environment] || environmentStyles.production}`}>
-                  {project.environment}
-                </span>
+                            <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => onTriggerDeploy(project)}
