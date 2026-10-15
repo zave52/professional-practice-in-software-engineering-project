@@ -25,6 +25,7 @@ export const triggerDeployment = async (req, res, next) => {
             ref: req.body?.ref,
             createTag: req.body?.create_tag,
             tagName: req.body?.tag_name,
+            accessToken: req.user.githubAccessToken,
         });
         return res.status(201).json(deployment);
     } catch (error) {
@@ -37,6 +38,7 @@ export const deleteDeployment = async (req, res, next) => {
         return res.status(200).json(await deploymentService.deleteDeployment(
             req.params.id,
             req.body?.project_id,
+            req.user.githubAccessToken,
         ));
     } catch (error) {
         return next(error);
@@ -48,6 +50,7 @@ export const rerunDeployment = async (req, res, next) => {
         return res.status(200).json(await deploymentService.rerunDeployment(
             req.params.id,
             req.body?.project_id,
+            req.user.githubAccessToken,
         ));
     } catch (error) {
         return next(error);

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import {getCookieName} from '../services/authService.js';
+import {findGitHubAccessToken} from '../repositories/userRepository.js';
 
 const getToken = (req) => {
     const header = req.get('authorization');
@@ -12,7 +13,7 @@ const getSecret = () => {
     return process.env.JWT_SECRET;
 };
 
-export default function auth(req, res, next) {
+export default async function auth(req, res, next) {
     const token = getToken(req);
     if (!token) return res.status(401).json({status: 401, message: 'Authentication is required.'});
     try {
@@ -21,6 +22,7 @@ export default function auth(req, res, next) {
             return res.status(401).json({status: 401, message: 'Token does not contain a valid user id.'});
         }
         req.user.id = Number(req.user.id);
+        req.user.githubAccessToken = await findGitHubAccessToken(req.user.id);
         return next();
     } catch (error) {
         if (error.status === 500) return next(error);

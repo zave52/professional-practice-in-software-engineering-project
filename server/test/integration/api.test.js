@@ -41,8 +41,7 @@ it('rejects unauthenticated mutations', async () => {
 
 it('validates CRUD route parameters and deployment payloads', async () => {
     const project = await request(app).get('/api/projects/not-an-id');
-    expect(project.status).toBe(400);
-    expect(project.body.message).toContain('positive integer');
+    expect(project.status).toBe(401);
 
     const deleted = await request(app).delete('/api/projects/not-an-id');
     expect(deleted.status).toBe(401);

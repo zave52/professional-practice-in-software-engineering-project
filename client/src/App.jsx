@@ -63,10 +63,30 @@ function App() {
     };
 
     useEffect(() => {
-        getSession().then(({user: sessionUser}) => setUser(sessionUser)).catch(() => setUser(null));
-        refreshDashboard();
-        const refreshInterval = window.setInterval(refreshDashboard, 30000);
-        return () => window.clearInterval(refreshInterval);
+        let refreshInterval;
+        getSession()
+            .then(({user: sessionUser}) => {
+                setUser(sessionUser);
+                if (sessionUser) {
+                    refreshDashboard();
+                    refreshInterval = window.setInterval(refreshDashboard, 30000);
+                } else {
+                    setProjects([]);
+                    setDeployments([]);
+                    setIsLoading(false);
+                }
+            })
+            .catch(() => {
+                setUser(null);
+                setProjects([]);
+                setDeployments([]);
+                setIsLoading(false);
+            });
+        return () => {
+            if (refreshInterval) {
+                window.clearInterval(refreshInterval);
+            }
+        };
     }, []);
 
     const handleLogin = () => window.location.assign(getLoginUrl());

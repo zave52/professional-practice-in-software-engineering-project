@@ -25,7 +25,7 @@ export const getDeployment = async (id) => {
     return deployment;
 };
 
-export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref, createTag, tagName}) => {
+export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref, createTag, tagName, accessToken}) => {
     const normalizedProjectId = toPositiveInteger(projectId, 'Project id');
     const project = await projectRepository.findById(normalizedProjectId);
     if (!project) {
@@ -48,6 +48,7 @@ export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref
         ref: typeof ref === 'string' && ref.trim() ? ref.trim() : 'main',
         createTag: Boolean(createTag),
         tagName: typeof tagName === 'string' ? tagName.trim() : tagName,
+        accessToken,
     });
 
     return {
@@ -61,7 +62,7 @@ export const triggerDeployment = async ({projectId, versionTag, triggeredBy, ref
     };
 };
 
-export const deleteDeployment = async (id, projectId) => {
+export const deleteDeployment = async (id, projectId, accessToken) => {
     const project = await projectRepository.findById(toPositiveInteger(projectId, 'Project id'));
     if (!project) {
         const error = new Error('Project not found.');
@@ -69,10 +70,14 @@ export const deleteDeployment = async (id, projectId) => {
         throw error;
     }
     const repository = new URL(project.repo_url).pathname.replace(/^\/|\/$/g, '');
-    return cancelWorkflowRun(toPositiveInteger(id, 'Deployment id'), repository);
+    return cancelWorkflowRun(
+        toPositiveInteger(id, 'Deployment id'),
+        repository,
+        ...(accessToken ? [accessToken] : []),
+    );
 };
 
-export const rerunDeployment = async (id, projectId) => {
+export const rerunDeployment = async (id, projectId, accessToken) => {
     const project = await projectRepository.findById(toPositiveInteger(projectId, 'Project id'));
     if (!project) {
         const error = new Error('Project not found.');
@@ -80,5 +85,9 @@ export const rerunDeployment = async (id, projectId) => {
         throw error;
     }
     const repository = new URL(project.repo_url).pathname.replace(/^\/|\/$/g, '');
-    return rerunWorkflowRun(toPositiveInteger(id, 'Deployment id'), repository);
+    return rerunWorkflowRun(
+        toPositiveInteger(id, 'Deployment id'),
+        repository,
+        ...(accessToken ? [accessToken] : []),
+    );
 };

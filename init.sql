@@ -7,15 +7,16 @@ CREATE TABLE roles
 
 CREATE TABLE users
 (
-    id            SERIAL PRIMARY KEY,
-    role_id       INT          NOT NULL,
-    username      VARCHAR(50)  NOT NULL UNIQUE,
-    email         VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    is_active     BOOLEAN      NOT NULL DEFAULT true,
-    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    github_id     VARCHAR(40) UNIQUE,
-    avatar_url    VARCHAR(500),
+    id                  SERIAL PRIMARY KEY,
+    role_id             INT          NOT NULL,
+    username            VARCHAR(50)  NOT NULL UNIQUE,
+    email               VARCHAR(100) NOT NULL UNIQUE,
+    password_hash       VARCHAR(255) NOT NULL,
+    is_active           BOOLEAN      NOT NULL DEFAULT true,
+    created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    github_id           VARCHAR(40) UNIQUE,
+    avatar_url          VARCHAR(500),
+    github_access_token TEXT,
     CONSTRAINT fk_users_role FOREIGN KEY (role_id)
         REFERENCES roles (id) ON DELETE RESTRICT
 );

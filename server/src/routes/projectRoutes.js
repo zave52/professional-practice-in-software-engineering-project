@@ -4,8 +4,8 @@ import {createProject, deleteProject, getProject, getProjects,} from '../control
 
 const router = Router();
 
-router.get('/', getProjects);
-router.get('/:id', getProject);
+router.get('/', auth, getProjects);
+router.get('/:id', auth, getProject);
 router.post('/', auth, createProject);
 router.delete('/:id', auth, deleteProject);
 

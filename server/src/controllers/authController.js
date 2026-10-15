@@ -31,8 +31,9 @@ export const githubCallback = async (req, res, next) => {
             return res.status(400).json({status: 400, message: 'Invalid GitHub login state.'});
         }
         authService.verifyOAuthState(state);
-        const profile = await authService.fetchGitHubUser(await authService.exchangeCode(code));
-        const user = await authService.upsertGitHubUser(profile);
+        const accessToken = await authService.exchangeCode(code);
+        const profile = await authService.fetchGitHubUser(accessToken);
+        const user = await authService.upsertGitHubUser(profile, accessToken);
         res.clearCookie(authService.getStateCookieName(), cookieOptions());
         res.cookie(authService.getCookieName(), authService.createSessionToken(user), cookieOptions(604800000));
         return res.redirect(process.env.CLIENT_ORIGIN || 'http://localhost:5173');

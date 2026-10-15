@@ -25,7 +25,7 @@ export const getGitHubAuthorizationUrl = (state) => {
     const params = new URLSearchParams({
         client_id: process.env.GITHUB_CLIENT_ID,
         redirect_uri: callbackUrl(),
-        scope: 'read:user user:email',
+        scope: 'read:user user:email repo workflow',
         state,
     });
     return `https://github.com/login/oauth/authorize?${params}`;
@@ -57,4 +57,5 @@ export const fetchGitHubUser = async (accessToken) => {
     if (!email) throw Object.assign(new Error('GitHub account has no accessible email address.'), {status: 400});
     return {githubId: profile.id, username: profile.login, email, avatarUrl: profile.avatar_url};
 };
-export const upsertGitHubUser = (profile) => userRepository.upsertGitHubUser(profile);
+export const upsertGitHubUser = (profile, accessToken) =>
+    userRepository.upsertGitHubUser({...profile, accessToken});

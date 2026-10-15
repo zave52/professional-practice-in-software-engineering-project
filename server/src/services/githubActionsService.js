@@ -12,21 +12,22 @@ const getRepository = (configuredRepository) => {
     return repository;
 };
 
-const getHeaders = () => {
+const getHeaders = (accessToken) => {
     const headers = {
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
     };
-    if (process.env.GITHUB_TOKEN) {
-        headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+    const token = accessToken || process.env.GITHUB_TOKEN;
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
     }
     return headers;
 };
 
-const githubRequest = async (url, options = {}) => {
+const githubRequest = async (url, options = {}, accessToken) => {
     const response = await fetch(url, {
         ...options,
-        headers: {...getHeaders(), ...options.headers},
+        headers: {...getHeaders(accessToken), ...options.headers},
     });
     if (!response.ok) {
         const error = new Error(
@@ -53,12 +54,12 @@ const mapRunStatus = (run) => {
     return 'FAILED';
 };
 
-export const getWorkflowRuns = async (configuredRepository, workflowId) => {
+export const getWorkflowRuns = async (configuredRepository, workflowId, accessToken) => {
     const repository = getRepository(configuredRepository);
     const workflowQuery = workflowId ? `&workflow_id=${encodeURIComponent(workflowId)}` : '';
     const response = await fetch(
         `${githubApiBaseUrl}/repos/${repository}/actions/runs?per_page=50${workflowQuery}`,
-        {headers: getHeaders()},
+        {headers: getHeaders(accessToken)},
     );
 
     if (!response.ok) {
@@ -91,10 +92,10 @@ export const getWorkflowRuns = async (configuredRepository, workflowId) => {
     }));
 };
 
-export const getRepositoryWorkflows = async (configuredRepository) => {
+export const getRepositoryWorkflows = async (configuredRepository, accessToken) => {
     const repository = getRepository(configuredRepository);
     const payload = await githubRequest(
-        `${githubApiBaseUrl}/repos/${repository}/actions/workflows?per_page=100`,
+        `${githubApiBaseUrl}/repos/${repository}/actions/workflows?per_page=100`, {}, accessToken
     );
     return (payload.workflows || []).map((workflow) => ({
         id: workflow.id,
@@ -104,11 +105,11 @@ export const getRepositoryWorkflows = async (configuredRepository) => {
     }));
 };
 
-export const getRepositoryRefs = async (configuredRepository) => {
+export const getRepositoryRefs = async (configuredRepository, accessToken) => {
     const repository = getRepository(configuredRepository);
     const [branches, tags] = await Promise.all([
-        githubRequest(`${githubApiBaseUrl}/repos/${repository}/branches?per_page=100`),
-        githubRequest(`${githubApiBaseUrl}/repos/${repository}/tags?per_page=100`),
+        githubRequest(`${githubApiBaseUrl}/repos/${repository}/branches?per_page=100`, {}, accessToken),
+        githubRequest(`${githubApiBaseUrl}/repos/${repository}/tags?per_page=100`, {}, accessToken),
     ]);
 
     return {
@@ -123,6 +124,7 @@ export const dispatchDeployment = async ({
                                              ref,
                                              createTag = false,
                                              tagName,
+                                             accessToken,
                                          }) => {
     const repository = getRepository(configuredRepository);
     let dispatchRef = ref;
@@ -142,13 +144,13 @@ export const dispatchDeployment = async ({
         }
 
         const source = await githubRequest(
-            `${githubApiBaseUrl}/repos/${repository}/git/ref/heads/${encodeURIComponent(ref)}`,
+            `${githubApiBaseUrl}/repos/${repository}/git/ref/heads/${encodeURIComponent(ref)}`, {}, accessToken
         );
         await githubRequest(`${githubApiBaseUrl}/repos/${repository}/git/refs`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ref: `refs/tags/${tagName}`, sha: source.object.sha}),
-        });
+        }, accessToken);
         dispatchRef = tagName;
     }
 
@@ -158,13 +160,12 @@ export const dispatchDeployment = async ({
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ref: dispatchRef}),
-        },
+        }, accessToken
     );
-
     return {repository, ref: dispatchRef, tag_created: createTag};
 };
 
-export const cancelWorkflowRun = async (runId, configuredRepository) => {
+export const cancelWorkflowRun = async (runId, configuredRepository, accessToken) => {
     const repository = getRepository(configuredRepository);
     if (!/^\d+$/.test(String(runId))) {
         const error = new Error('Workflow run id must be numeric.');
@@ -174,12 +175,12 @@ export const cancelWorkflowRun = async (runId, configuredRepository) => {
 
     await githubRequest(
         `${githubApiBaseUrl}/repos/${repository}/actions/runs/${runId}/cancel`,
-        {method: 'POST'},
+        {method: 'POST'}, accessToken
     );
     return {id: Number(runId), cancelled: true};
 };
 
-export const rerunWorkflowRun = async (runId, configuredRepository) => {
+export const rerunWorkflowRun = async (runId, configuredRepository, accessToken) => {
     const repository = getRepository(configuredRepository);
     if (!/^\d+$/.test(String(runId))) {
         const error = new Error('Workflow run id must be numeric.');
@@ -189,7 +190,7 @@ export const rerunWorkflowRun = async (runId, configuredRepository) => {
 
     await githubRequest(
         `${githubApiBaseUrl}/repos/${repository}/actions/runs/${runId}/rerun`,
-        {method: 'POST'},
+        {method: 'POST'}, accessToken
     );
     return {id: Number(runId), rerun: true};
 };
