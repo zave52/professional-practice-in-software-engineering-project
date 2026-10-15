@@ -26,18 +26,6 @@ const validateProject = ({name, repoUrl}) => {
 };
 
 export const listProjects = async () => {
-    const projects = await projectRepository.findAll();
-    if (projects.length > 0) {
-        return projects;
-    }
-
-    const repository = process.env.GITHUB_REPOSITORY
-        || 'zave52/professional-practice-in-software-engineering-project';
-    if (!/^[^/\s]+\/[^/\s]+$/.test(repository)) {
-        return projects;
-    }
-
-    await projectRepository.ensureConfiguredProject({repository});
     return projectRepository.findAll();
 };
 
@@ -63,12 +51,20 @@ export const createProject = async ({userId, name, repoUrl, workflowId, workflow
         throw error;
     }
     const ownerId = userId || await projectRepository.ensureDefaultUser();
-    return projectRepository.create({
-        userId: ownerId,
-        ...normalized,
-        workflowId: Number(workflowId),
-        workflowName: workflowName.trim(),
-    });
+    try {
+        return await projectRepository.create({
+            userId: ownerId,
+            ...normalized,
+            workflowId: Number(workflowId),
+            workflowName: workflowName.trim(),
+        });
+    } catch (error) {
+        if (error.code === '23505') {
+            error.status = 409;
+            error.message = 'A project with this name already exists.';
+        }
+        throw error;
+    }
 };
 
 export const deleteProject = async (id) => {

@@ -50,5 +50,8 @@ it('validates CRUD route parameters and deployment payloads', async () => {
     expect(deployment.status).toBe(401);
 
     const deploymentById = await request(app).get('/api/deployments/not-an-id');
-    expect(deploymentById.status).toBe(400);
+    expect(deploymentById.status).toBe(401);
+
+    const deployments = await request(app).get('/api/deployments');
+    expect(deployments.status).toBe(401);
 });

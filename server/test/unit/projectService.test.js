@@ -57,15 +57,13 @@ describe('projectService', () => {
         expect(repository.findById).toHaveBeenCalledTimes(1);
     });
 
-    it('lists projects and provisions the configured project only when empty', async () => {
-        repository.findById.mockResolvedValue(null);
-        repository.findAll = vi.fn().mockResolvedValueOnce([{id: 1}]);
-        await expect(projectService.listProjects()).resolves.toEqual([{id: 1}]);
-        repository.findAll.mockResolvedValueOnce([]).mockResolvedValueOnce([{id: 2}]);
-        repository.ensureConfiguredProject = vi.fn().mockResolvedValue({id: 2});
-        process.env.GITHUB_REPOSITORY = 'acme/app';
-        await expect(projectService.listProjects()).resolves.toEqual([{id: 2}]);
-        expect(repository.ensureConfiguredProject).toHaveBeenCalledWith({repository: 'acme/app'});
+    it('returns an empty project list without creating records', async () => {
+        repository.findAll = vi.fn().mockResolvedValue([]);
+        repository.ensureConfiguredProject = vi.fn();
+
+        await expect(projectService.listProjects()).resolves.toEqual([]);
+
+        expect(repository.ensureConfiguredProject).not.toHaveBeenCalled();
     });
 
     it('creates with the default user and deletes projects by validated id', async () => {
@@ -78,5 +76,20 @@ describe('projectService', () => {
         await expect(projectService.deleteProject(3)).resolves.toEqual({id: 3});
         repository.remove.mockResolvedValue(null);
         await expect(projectService.deleteProject(3)).rejects.toMatchObject({status: 404});
+    });
+
+    it('maps duplicate project names to a conflict error', async () => {
+        repository.create.mockRejectedValue({code: '23505'});
+
+        await expect(projectService.createProject({
+            userId: 4,
+            name: 'Dashboard',
+            repoUrl: 'https://github.com/a/b',
+            workflowId: 2,
+            workflowName: 'Deploy',
+        })).rejects.toMatchObject({
+            status: 409,
+            message: 'A project with this name already exists.',
+        });
     });
 });
