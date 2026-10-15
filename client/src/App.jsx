@@ -12,7 +12,10 @@ import {
     deleteDeployment,
     deleteProject,
     getDeployments,
+    getLoginUrl,
     getProjects,
+    getSession,
+    logout,
     rerunDeployment,
     triggerDeployment,
 } from './services/api';
@@ -30,6 +33,7 @@ function App() {
     const [searchTerm, setSearchTerm] = useState('');
     const [projectFilter, setProjectFilter] = useState('all');
     const [toast, setToast] = useState(null);
+    const [user, setUser] = useState(null);
 
     const showToast = (message, type = 'info') => {
         setToast({message, type});
@@ -59,10 +63,18 @@ function App() {
     };
 
     useEffect(() => {
+        getSession().then(({user: sessionUser}) => setUser(sessionUser)).catch(() => setUser(null));
         refreshDashboard();
         const refreshInterval = window.setInterval(refreshDashboard, 30000);
         return () => window.clearInterval(refreshInterval);
     }, []);
+
+    const handleLogin = () => window.location.assign(getLoginUrl());
+    const handleLogout = async () => {
+        await logout();
+        setUser(null);
+        showToast('Ви вийшли з облікового запису.', 'success');
+    };
 
     const handleCreateProject = async (projectData) => {
         try {
@@ -157,6 +169,9 @@ function App() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 onAddProject={() => setProjectModalOpen(true)}
+                user={user}
+                onLogin={handleLogin}
+                onLogout={handleLogout}
             />
 
             <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

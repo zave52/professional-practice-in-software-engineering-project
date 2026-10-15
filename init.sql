@@ -14,6 +14,8 @@ CREATE TABLE users
     password_hash VARCHAR(255) NOT NULL,
     is_active     BOOLEAN      NOT NULL DEFAULT true,
     created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    github_id     VARCHAR(40) UNIQUE,
+    avatar_url    VARCHAR(500),
     CONSTRAINT fk_users_role FOREIGN KEY (role_id)
         REFERENCES roles (id) ON DELETE RESTRICT
 );

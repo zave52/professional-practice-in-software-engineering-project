@@ -42,6 +42,10 @@ export const migrateObsoleteColumns = async () => {
         ALTER TABLE deployments
             ADD CONSTRAINT chk_deploy_status
                 CHECK (deploy_status IN ('SUCCESS', 'FAILED', 'RUNNING', 'CANCELED'));
+        ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS github_id VARCHAR(40) UNIQUE;
+        ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500);
     `);
 };
 export default pool;

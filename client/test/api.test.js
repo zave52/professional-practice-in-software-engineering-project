@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {createProject, getProjects, getRepositoryWorkflows} from '../src/services/api';
+import {createProject, getProjects, getRepositoryWorkflows, getSession} from '../src/services/api';
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -7,8 +7,22 @@ afterEach(() => {
 });
 
 describe('API client', () => {
+    it('uses the httpOnly session cookie and reports unauthenticated mutations clearly', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            new Response(JSON.stringify({message: 'Authentication is required.'}), {status: 401}),
+        );
+        await expect(createProject({
+            name: 'App',
+            repo_url: 'https://github.com/a/b',
+            workflow_id: 1,
+            workflow_name: 'Deploy'
+        }))
+            .rejects.toThrow('Будь ласка, увійдіть через GitHub');
+        expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({credentials: 'include'}));
+        expect(await getSession().catch(() => null)).toBeNull();
+    });
+
     it('sends JSON, auth, and encoded workflow requests', async () => {
-        localStorage.setItem('accessToken', 'token');
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
             new Response(JSON.stringify([{id: 1, name: 'Deploy'}]), {status: 200}),
         );
@@ -18,7 +32,8 @@ describe('API client', () => {
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/pipelines/workflows?repo_url=https%3A%2F%2Fgithub.com%2Facme%2Fmy%20project',
             expect.objectContaining({
-                headers: expect.objectContaining({Authorization: 'Bearer token', Accept: 'application/json'}),
+                headers: expect.objectContaining({Accept: 'application/json'}),
+                credentials: 'include',
             }),
         );
     });
@@ -44,6 +59,6 @@ describe('API client', () => {
     it('maps network failures to a user-friendly error', async () => {
         vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
 
-        await expect(getProjects()).rejects.toThrow('Unable to reach the backend API');
+        await expect(getProjects()).rejects.toThrow('Не вдалося підключитися до сервера');
     });
 });

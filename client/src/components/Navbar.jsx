@@ -1,7 +1,7 @@
 import {Menu, Plus, Server, X} from 'lucide-react';
 import {useState} from 'react';
 
-function Navbar({activeTab, onTabChange, onAddProject}) {
+function Navbar({activeTab, onTabChange, onAddProject, user, onLogin, onLogout}) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const navItems = [
@@ -14,6 +14,16 @@ function Navbar({activeTab, onTabChange, onAddProject}) {
         <header className="sticky top-0 z-40 border-b border-slate-800/90 bg-slate-950/85 backdrop-blur-xl">
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
                 <div className="flex items-center gap-3">
+                    {user ? (
+                        <button type="button" onClick={onLogout} className="text-sm text-slate-300 hover:text-white">
+                            {user.username || 'GitHub'} · Вийти
+                        </button>
+                    ) : (
+                        <button type="button" onClick={onLogin}
+                                className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:border-emerald-400">
+                            Увійти через GitHub
+                        </button>
+                    )}
                     <div
                         className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30">
                         <Server className="h-5 w-5"/>
