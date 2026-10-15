@@ -13,7 +13,7 @@ function LoginPage({onLogin}) {
                     <p className="mt-6 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">DevOps</p>
                     <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">CI/CD Dashboard</h1>
                     <p className="mt-4 text-sm leading-6 text-slate-400">
-                        Увійдіть через GitHub, щоб переглядати проєкти та керувати pipeline.
+                        Sign in via GitHub to view projects and manage your pipeline.
                     </p>
                 </div>
 
@@ -23,12 +23,12 @@ function LoginPage({onLogin}) {
                     className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900"
                 >
                     <GitBranch className="h-5 w-5"/>
-                    Увійти через GitHub
+                    Sign in via GitHub
                 </button>
 
                 <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500">
                     <LockKeyhole className="h-3.5 w-3.5"/>
-                    Доступ до dashboard мають лише авторизовані користувачі
+                    Only authorized users have access to the dashboard
                 </div>
             </section>
         </main>

@@ -10,12 +10,12 @@ const request = async (path, options = {}) => {
     try {
         response = await fetch(`${API_BASE_URL}${path}`, {...options, headers, credentials: 'include'});
     } catch {
-        throw new Error('Не вдалося підключитися до сервера. Перевірте з’єднання.');
+        throw new Error('Unable to connect to the server. Check your connection.');
     }
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
-        if (response.status === 401) throw new Error('Будь ласка, увійдіть через GitHub, щоб виконати цю дію.');
-        throw new Error(payload?.message || 'Не вдалося виконати запит. Перевірте з’єднання з сервером.');
+        if (response.status === 401) throw new Error('Please sign in with GitHub to perform this action.');
+        throw new Error(payload?.message || 'Unable to complete the request. Check your connection.');
     }
     return payload;
 };

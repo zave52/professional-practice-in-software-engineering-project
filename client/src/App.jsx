@@ -102,7 +102,7 @@ function App() {
             setProjects([]);
             setDeployments([]);
         } catch (error) {
-            showToast(error.message || 'Не вдалося завершити сеанс.', 'error');
+            showToast(error.message || 'Unable to sign out.', 'error');
         }
     };
 
@@ -111,7 +111,7 @@ function App() {
             <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">
                 <div className="flex items-center gap-3 text-sm">
                     <RefreshCw className="h-5 w-5 animate-spin text-emerald-400"/>
-                    Перевірка авторизації...
+                    Authorization Check...
                 </div>
             </div>
         );

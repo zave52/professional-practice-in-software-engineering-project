@@ -16,12 +16,12 @@ function Navbar({activeTab, onTabChange, onAddProject, user, onLogin, onLogout})
                 <div className="flex items-center gap-3">
                     {user ? (
                         <button type="button" onClick={onLogout} className="text-sm text-slate-300 hover:text-white">
-                            {user.username || 'GitHub'} · Вийти
+                            {user.username || 'GitHub'} · Logout
                         </button>
                     ) : (
                         <button type="button" onClick={onLogin}
                                 className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:border-emerald-400">
-                            Увійти через GitHub
+                            Sign in via GitHub
                         </button>
                     )}
                     <div

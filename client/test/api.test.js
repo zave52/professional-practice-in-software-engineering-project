@@ -17,7 +17,7 @@ describe('API client', () => {
             workflow_id: 1,
             workflow_name: 'Deploy'
         }))
-            .rejects.toThrow('Будь ласка, увійдіть через GitHub');
+            .rejects.toThrow('Please sign in with GitHub');
         expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({credentials: 'include'}));
         expect(await getSession().catch(() => null)).toBeNull();
     });
@@ -59,6 +59,6 @@ describe('API client', () => {
     it('maps network failures to a user-friendly error', async () => {
         vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
 
-        await expect(getProjects()).rejects.toThrow('Не вдалося підключитися до сервера');
+        await expect(getProjects()).rejects.toThrow('Unable to connect to the server');
     });
 });
