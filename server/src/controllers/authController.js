@@ -2,10 +2,16 @@ import * as authService from '../services/authService.js';
 
 const cookieOptions = (maxAge) => ({
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.COOKIE_SECURE === 'true',
     sameSite: 'lax',
     path: '/', ...(maxAge ? {maxAge} : {}),
 });
+
+const getCookieValue = (req, name) => req.headers.cookie
+    ?.split(';')
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
 
 export const startGitHubLogin = (req, res, next) => {
     try {
@@ -20,9 +26,8 @@ export const startGitHubLogin = (req, res, next) => {
 export const githubCallback = async (req, res, next) => {
     try {
         const {code, state} = req.query;
-        const stateCookie = req.headers.cookie?.split(';').map((item) => item.trim())
-            .find((item) => item.startsWith(`${authService.getStateCookieName()}=`))?.split('=').slice(1).join('=');
-        if (!code || !state || !stateCookie || state !== stateCookie) {
+        const stateCookie = getCookieValue(req, authService.getStateCookieName());
+        if (!code || !state || !stateCookie || state !== decodeURIComponent(stateCookie)) {
             return res.status(400).json({status: 400, message: 'Invalid GitHub login state.'});
         }
         authService.verifyOAuthState(state);
