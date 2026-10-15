@@ -7,6 +7,7 @@ import DeploymentTable from './components/DeploymentTable';
 import AddProjectModal from './components/AddProjectModal';
 import ConfirmModal from './components/ConfirmModal';
 import TriggerDeployModal from './components/TriggerDeployModal';
+import LoginPage from './components/LoginPage';
 import {
     createProject,
     deleteDeployment,
@@ -34,6 +35,7 @@ function App() {
     const [projectFilter, setProjectFilter] = useState('all');
     const [toast, setToast] = useState(null);
     const [user, setUser] = useState(null);
+    const [isSessionLoading, setIsSessionLoading] = useState(true);
 
     const showToast = (message, type = 'info') => {
         setToast({message, type});
@@ -81,6 +83,9 @@ function App() {
                 setProjects([]);
                 setDeployments([]);
                 setIsLoading(false);
+            })
+            .finally(() => {
+                setIsSessionLoading(false);
             });
         return () => {
             if (refreshInterval) {
@@ -91,10 +96,30 @@ function App() {
 
     const handleLogin = () => window.location.assign(getLoginUrl());
     const handleLogout = async () => {
-        await logout();
-        setUser(null);
-        showToast('Ви вийшли з облікового запису.', 'success');
+        try {
+            await logout();
+            setUser(null);
+            setProjects([]);
+            setDeployments([]);
+        } catch (error) {
+            showToast(error.message || 'Не вдалося завершити сеанс.', 'error');
+        }
     };
+
+    if (isSessionLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">
+                <div className="flex items-center gap-3 text-sm">
+                    <RefreshCw className="h-5 w-5 animate-spin text-emerald-400"/>
+                    Перевірка авторизації...
+                </div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return <LoginPage onLogin={handleLogin}/>;
+    }
 
     const handleCreateProject = async (projectData) => {
         try {
