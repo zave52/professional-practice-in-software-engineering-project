@@ -2,6 +2,8 @@ import request from 'supertest';
 import {afterEach, expect, it} from 'vitest';
 import app from '../../src/app.js';
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-only-jwt-secret';
+
 afterEach(() => {
     delete process.env.GITHUB_CLIENT_ID;
     delete process.env.GITHUB_CLIENT_SECRET;
