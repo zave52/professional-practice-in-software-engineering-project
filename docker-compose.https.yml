@@ -1,0 +1,32 @@
+# Optional HTTPS overlay (automatic Let's Encrypt certificates via Caddy).
+# Enable on the server by adding to .env:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.https.yml
+#   SITE_ADDRESS=<domain>          for example 9-160-36-33.sslip.io
+# Requirements:
+#   - inbound TCP 443 allowed in the Azure network security group;
+#   - CLIENT_ORIGIN, API_ORIGIN, GITHUB_CALLBACK_URL and the GitHub OAuth app callback switched
+#     to https://<domain>, and COOKIE_SECURE=true.
+services:
+  frontend:
+    ports: !reset []
+    expose:
+      - "80"
+
+  proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS is required for HTTPS}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,24 +1,13 @@
-import {CanceledState} from './CanceledState.js';
-import {FailedState} from './FailedState.js';
-import {RunningState} from './RunningState.js';
-import {SuccessState} from './SuccessState.js';
+import {DeploymentStateFactory} from './DeploymentStateFactory.js';
 
-const stateByStatus = {
-    RUNNING: RunningState,
-    SUCCESS: SuccessState,
-    FAILED: FailedState,
-    CANCELED: CanceledState,
-};
-
+/**
+ * State pattern: context. Holds the current state of one deployment and delegates every
+ * lifecycle operation to it. The list of transitions is kept for audit events.
+ */
 export class DeploymentContext {
     constructor(initialStatus = 'RUNNING') {
-        const StateClass = stateByStatus[initialStatus];
-        if (!StateClass) {
-            const error = new Error(`Invalid deployment status: ${initialStatus}`);
-            error.status = 400;
-            throw error;
-        }
-        this.setState(new StateClass());
+        this.state = DeploymentStateFactory.create(initialStatus);
+        this.transitions = [];
     }
 
     getState() {
@@ -29,20 +18,49 @@ export class DeploymentContext {
         return this.state.status;
     }
 
-    setState(newState) {
-        this.state = newState;
+    allowedActions() {
+        return this.state.allowedActions();
+    }
+
+    transitionTo(status) {
+        const next = DeploymentStateFactory.create(status);
+        if (next !== this.state) {
+            this.transitions.push({from: this.state.status, to: next.status});
+            this.state = next;
+        }
     }
 
     cancel() {
-        return this.state.cancel(this);
+        this.state.cancel(this);
+        return this;
     }
 
     rerun() {
-        return this.state.rerun(this);
+        this.state.rerun(this);
+        return this;
     }
 
     complete(success) {
-        return this.state.complete(this, success);
+        this.state.complete(this, success);
+        return this;
+    }
+
+    markCanceled() {
+        this.state.markCanceled(this);
+        return this;
+    }
+
+    /**
+     * Applies an observation from the CI provider. Returns true when the status changed.
+     * `newAttempt` is true when the provider reports a higher run_attempt than the stored one.
+     */
+    applyRemote(remoteStatus, {newAttempt = false} = {}) {
+        const before = this.getStatus();
+        if (newAttempt) {
+            this.state.onNewAttempt(this);
+        }
+        this.state.onRemoteStatus(this, remoteStatus);
+        return before !== this.getStatus();
     }
 }
 

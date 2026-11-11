@@ -1,27 +1,27 @@
-import {DeploymentObserver} from './DeploymentObserver.js';
+import {DOMAIN_EVENTS, EventObserver} from './EventPublisher.js';
 
-export class MetricsObserver extends DeploymentObserver {
-    constructor() {
+/**
+ * Concrete observer: in-process activity counters (since the process started), exposed by
+ * GET /api/metrics next to the DORA metrics that are calculated from the database.
+ */
+export class MetricsObserver extends EventObserver {
+    constructor({now = () => new Date()} = {}) {
         super();
-        this.metrics = {
-            totalTriggered: 0,
-            totalCanceled: 0,
-            totalRerun: 0,
-        };
+        this.startedAt = now().toISOString();
+        this.events = Object.fromEntries(Object.values(DOMAIN_EVENTS).map((event) => [event, 0]));
+        this.transitions = {};
     }
 
-    update(event) {
-        if (event === 'DEPLOYMENT_TRIGGERED') {
-            this.metrics.totalTriggered += 1;
-        } else if (event === 'DEPLOYMENT_CANCELED') {
-            this.metrics.totalCanceled += 1;
-        } else if (event === 'DEPLOYMENT_RERUN') {
-            this.metrics.totalRerun += 1;
+    update(event, payload = {}) {
+        this.events[event] = (this.events[event] || 0) + 1;
+        if (event === DOMAIN_EVENTS.DEPLOYMENT_STATUS_CHANGED && payload.from && payload.to) {
+            const key = `${payload.from}->${payload.to}`;
+            this.transitions[key] = (this.transitions[key] || 0) + 1;
         }
     }
 
-    getMetrics() {
-        return {...this.metrics};
+    snapshot() {
+        return {since: this.startedAt, events: {...this.events}, transitions: {...this.transitions}};
     }
 }
 

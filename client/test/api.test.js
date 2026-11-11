@@ -1,64 +1,78 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {createProject, getProjects, getRepositoryWorkflows, getSession} from '../src/services/api';
+import * as api from '../src/services/api';
 
-afterEach(() => {
-    vi.restoreAllMocks();
-    localStorage.clear();
-});
+const respond = (status, body) => vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    new Response(body === undefined ? null : JSON.stringify(body), {status}),
+);
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('API client', () => {
-    it('uses the httpOnly session cookie and reports unauthenticated mutations clearly', async () => {
-        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-            new Response(JSON.stringify({message: 'Authentication is required.'}), {status: 401}),
-        );
-        await expect(createProject({
-            name: 'App',
-            repo_url: 'https://github.com/a/b',
-            workflow_id: 1,
-            workflow_name: 'Deploy'
-        }))
-            .rejects.toThrow('Please sign in with GitHub');
-        expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({credentials: 'include'}));
-        expect(await getSession().catch(() => null)).toBeNull();
+    it('sends credentials and JSON to the new REST endpoints', async () => {
+        const fetchMock = respond(201, {deployment: {id: 1}});
+        await api.triggerDeployment(3, {ref: 'main', createTag: true, tagName: 'v1'});
+
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe('/api/deployments');
+        expect(init).toMatchObject({method: 'POST', credentials: 'include'});
+        expect(JSON.parse(init.body)).toEqual({project_id: 3, ref: 'main', create_tag: true, tag_name: 'v1'});
+        expect(init.headers['Content-Type']).toBe('application/json');
     });
 
-    it('sends JSON, auth, and encoded workflow requests', async () => {
-        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-            new Response(JSON.stringify([{id: 1, name: 'Deploy'}]), {status: 200}),
-        );
+    it('builds query strings and skips empty or "all" filters', async () => {
+        const fetchMock = respond(200, {});
+        await api.getMetrics({days: 7, projectId: 'all'});
+        await api.getDeployments({projectId: 5});
+        await api.getRepositoryWorkflows('https://github.com/acme/my app');
+        await api.getAuditLog({limit: 10});
+        await api.getDeployments();
 
-        await getRepositoryWorkflows('https://github.com/acme/my project');
-
-        expect(fetchMock).toHaveBeenCalledWith(
-            '/api/pipelines/workflows?repo_url=https%3A%2F%2Fgithub.com%2Facme%2Fmy%20project',
-            expect.objectContaining({
-                headers: expect.objectContaining({Accept: 'application/json'}),
-                credentials: 'include',
-            }),
-        );
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+            '/api/metrics?days=7',
+            '/api/deployments?project_id=5',
+            '/api/repositories/workflows?repo_url=https%3A%2F%2Fgithub.com%2Facme%2Fmy+app',
+            '/api/audit?limit=10',
+            '/api/deployments',
+        ]);
     });
 
-    it('posts project fields and returns server error messages', async () => {
-        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-            new Response(JSON.stringify({id: 4}), {status: 201}),
-        ).mockResolvedValueOnce(
-            new Response(JSON.stringify({message: 'Project already exists.'}), {status: 409}),
-        );
+    it('covers project and run operations', async () => {
+        const fetchMock = respond(200, {});
+        await api.getProjects();
+        await api.createProject({name: 'App', repo_url: 'https://github.com/a/b', workflow_id: 2, extra: 'x'});
+        await api.deleteProject(4);
+        await api.getDeploymentRefs(4);
+        await api.cancelDeployment(9);
+        await api.rerunDeployment(9);
+        await api.getSession();
+        await api.logout();
 
-        await expect(createProject({
-            name: 'App',
-            repo_url: 'https://github.com/a/b',
-            workflow_id: 2,
-            workflow_name: 'Deploy'
-        }))
-            .resolves.toEqual({id: 4});
-        expect(fetchMock.mock.calls[0][1].body).toContain('"workflow_id":2');
-        await expect(getProjects()).rejects.toThrow('Project already exists.');
+        const calls = fetchMock.mock.calls.map(([url, init]) => `${init.method || 'GET'} ${url}`);
+        expect(calls).toEqual([
+            'GET /api/projects', 'POST /api/projects', 'DELETE /api/projects/4', 'GET /api/projects/4/refs',
+            'POST /api/deployments/9/cancel', 'POST /api/deployments/9/rerun', 'GET /api/auth/session', 'POST /api/auth/logout',
+        ]);
+        expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({name: 'App', repo_url: 'https://github.com/a/b', workflow_id: 2});
+        expect(api.getLoginUrl()).toBe('/api/auth/github');
     });
 
-    it('maps network failures to a user-friendly error', async () => {
-        vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+    it('raises ApiError with status and code from the server', async () => {
+        respond(409, {code: 'INVALID_STATE_TRANSITION', message: 'Cannot cancel a deployment in SUCCESS state.'});
+        await expect(api.cancelDeployment(1)).rejects.toMatchObject({
+            name: 'ApiError', status: 409, code: 'INVALID_STATE_TRANSITION', message: 'Cannot cancel a deployment in SUCCESS state.',
+        });
+    });
 
-        await expect(getProjects()).rejects.toThrow('Unable to connect to the server');
+    it('maps 401, empty error bodies and network failures to friendly messages', async () => {
+        respond(401, {});
+        await expect(api.getProjects()).rejects.toMatchObject({status: 401, message: 'Please sign in with GitHub to perform this action.'});
+
+        vi.restoreAllMocks();
+        respond(500);
+        await expect(api.getProjects()).rejects.toThrow('Unable to complete the request');
+
+        vi.restoreAllMocks();
+        vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('offline'));
+        await expect(api.getProjects()).rejects.toMatchObject({status: 0, code: 'NETWORK_ERROR'});
     });
 });

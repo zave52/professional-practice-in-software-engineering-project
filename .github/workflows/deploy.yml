@@ -1,71 +1,212 @@
-name: Build and Deploy
+name: CI/CD Pipeline
 
+# FR-01: validate every pull request; FR-02: release on merge to main or on a version tag.
 on:
+  pull_request:
+    branches: [ main, develop ]
   push:
-    branches:
-      - main
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
   workflow_dispatch:
 
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# NFR-03: least privilege by default; jobs widen it only where required.
 permissions:
-  actions: read
   contents: read
 
+env:
+  NODE_VERSION: 24
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
 jobs:
-  build-and-test:
-    name: Build and test
+  quality:
+    name: Lint & audit (${{ matrix.package }})
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [ client, server ]
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: |
-            client/package-lock.json
-            server/package-lock.json
+          cache-dependency-path: ${{ matrix.package }}/package-lock.json
+      - run: npm ci
+      # FR-03: style and static analysis
+      - run: npm run lint
+      # FR-04: block high/critical CVEs in runtime dependencies
+      - run: npm audit --omit=dev --audit-level=high
 
-      - name: Install client dependencies
-        working-directory: client
-        run: npm ci
-
-      - name: Install server dependencies
+  test-server:
+    name: Server tests (PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6-alpine3.24
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: cicd_test
+        ports: [ '5432:5432' ]
+        options: >-
+          --health-cmd "pg_isready -U test -d cicd_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://test:test@localhost:5432/cicd_test
+    defaults:
+      run:
         working-directory: server
-        run: npm ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      # FR-05/FR-06: unit + integration tests; vitest fails the job below 70% coverage
+      - run: npm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: |
+          node -e "const s=require('./coverage/coverage-summary.json').total;
+          console.log('### Server coverage\n| Metric | % |\n|---|---|');
+          for (const k of ['statements','branches','functions','lines']) console.log('| '+k+' | '+s[k].pct+' |');" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: server-coverage
+          path: server/coverage
+          retention-days: 7
 
-      - name: Run client tests when available
+  test-client:
+    name: Client tests & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
         working-directory: client
-        run: npm test --if-present
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: |
+          node -e "const s=require('./coverage/coverage-summary.json').total;
+          console.log('### Client coverage\n| Metric | % |\n|---|---|');
+          for (const k of ['statements','branches','functions','lines']) console.log('| '+k+' | '+s[k].pct+' |');" >> "$GITHUB_STEP_SUMMARY"
+      - run: npm run build
 
-      - name: Run server tests
-        working-directory: server
-        run: npm test
-
-      - name: Build client
-        working-directory: client
-        run: npm run build
+  images:
+    name: Docker image (${{ matrix.component }})
+    needs: [ quality, test-server, test-client ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        component: [ server, client ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # FR-08: tag images with the commit SHA, `latest` on main and the semantic version on tags
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.component }}
+          tags: |
+            type=sha,format=long,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+      # FR-07 + NFR-05: multi-stage build with BuildKit layer cache stored in GitHub Actions
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.component }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: APP_VERSION=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
 
   deploy:
     name: Deploy to production
+    needs: images
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: build-and-test
-
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
     steps:
-      - name: Deploy containers over SSH
+      # FR-09 + NFR-07: pull images on the VM, restart, verify health, roll back on failure
+      - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.2
         env:
           GITHUB_SHA: ${{ github.sha }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: GITHUB_SHA
+          envs: GITHUB_SHA,GHCR_USER,GHCR_TOKEN
+          command_timeout: 10m
           script: |
             set -e
             cd /opt/cicd-dashboard
             git fetch --prune origin "$GITHUB_SHA"
             git checkout --detach "$GITHUB_SHA"
-            docker compose up -d --build --remove-orphans
+            bash deploy/deploy.sh "$GITHUB_SHA"
+
+      # FR-10: independent smoke test from outside the server
+      - name: Public health check
+        env:
+          APP_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          for attempt in $(seq 1 10); do
+            body="$(curl -fsS --max-time 5 "http://$APP_HOST/api/health" || true)"
+            if echo "$body" | grep -q "\"version\":\"$GITHUB_SHA\""; then
+              echo "Healthy: $body"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::Public health check failed: $body"
+          exit 1
+
+      # FR-11: report in the GitHub Checks summary
+      - name: Release summary
+        if: always()
+        run: |
+          {
+            echo "### Deployment ${{ job.status == 'success' && 'succeeded' || 'failed' }}"
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Commit | \`${GITHUB_SHA}\` |"
+            echo "| Ref | \`${GITHUB_REF_NAME}\` |"
+            echo "| Images | \`${IMAGE_PREFIX}/server:${GITHUB_SHA}\`, \`${IMAGE_PREFIX}/client:${GITHUB_SHA}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,6 +1,12 @@
-import {GitBranch, LockKeyhole, Server} from 'lucide-react';
+import {AlertTriangle, GitBranch, LockKeyhole, Server} from 'lucide-react';
 
-function LoginPage({onLogin}) {
+const loginErrors = {
+    VALIDATION_ERROR: 'The sign-in attempt expired or was tampered with. Please try again.',
+    FORBIDDEN: 'This account has been deactivated. Contact an administrator.',
+    UNAUTHENTICATED: 'GitHub did not authorize the sign-in. Please try again.',
+};
+
+function LoginPage({onLogin, error}) {
     return (
         <main className="flex min-h-screen items-center justify-center px-4 py-10">
             <section
@@ -16,6 +22,14 @@ function LoginPage({onLogin}) {
                         Sign in via GitHub to view projects and manage your pipeline.
                     </p>
                 </div>
+
+                {error && (
+                    <div role="alert"
+                         className="mt-6 flex items-start gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-3 text-sm text-rose-100">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0"/>
+                        <span>{loginErrors[error] || 'Sign-in failed. Please try again.'}</span>
+                    </div>
+                )}
 
                 <button
                     type="button"

@@ -1,26 +1,36 @@
-import {CanceledState} from './CanceledState.js';
 import {DeploymentState} from './DeploymentState.js';
-import {FailedState} from './FailedState.js';
-import {SuccessState} from './SuccessState.js';
 
 export class RunningState extends DeploymentState {
-    constructor() {
-        super();
-        this.status = 'RUNNING';
+    get status() {
+        return 'RUNNING';
+    }
+
+    allowedActions() {
+        return ['cancel'];
     }
 
     cancel(context) {
-        context.setState(new CanceledState());
-    }
-
-    rerun() {
-        const error = new Error('Cannot rerun an active running deployment');
-        error.status = 400;
-        throw error;
+        context.transitionTo('CANCELING');
     }
 
     complete(context, success) {
-        context.setState(success ? new SuccessState() : new FailedState());
+        context.transitionTo(success ? 'SUCCESS' : 'FAILED');
+    }
+
+    markCanceled(context) {
+        context.transitionTo('CANCELED');
+    }
+
+    onNewAttempt() {
+        // Already running: a new attempt keeps the deployment in RUNNING.
+    }
+
+    onRemoteStatus(context, remoteStatus) {
+        if (remoteStatus === 'SUCCESS' || remoteStatus === 'FAILED') {
+            this.complete(context, remoteStatus === 'SUCCESS');
+        } else if (remoteStatus === 'CANCELED') {
+            this.markCanceled(context);
+        }
     }
 }
 

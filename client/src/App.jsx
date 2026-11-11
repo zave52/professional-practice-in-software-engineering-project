@@ -1,345 +1,149 @@
-import {useEffect, useState} from 'react';
 import {BellRing, RefreshCw} from 'lucide-react';
-import Navbar from './components/Navbar';
-import StatsCards from './components/StatsCards';
-import ProjectList from './components/ProjectList';
-import DeploymentTable from './components/DeploymentTable';
 import AddProjectModal from './components/AddProjectModal';
+import AuditLog from './components/AuditLog';
 import ConfirmModal from './components/ConfirmModal';
-import TriggerDeployModal from './components/TriggerDeployModal';
+import DeploymentTable from './components/DeploymentTable';
 import LoginPage from './components/LoginPage';
-import {
-    createProject,
-    deleteDeployment,
-    deleteProject,
-    getDeployments,
-    getLoginUrl,
-    getProjects,
-    getSession,
-    logout,
-    rerunDeployment,
-    triggerDeployment,
-} from './services/api';
+import MetricsPanel from './components/MetricsPanel';
+import Navbar from './components/Navbar';
+import ProjectList from './components/ProjectList';
+import StatsCards from './components/StatsCards';
+import TriggerDeployModal from './components/TriggerDeployModal';
+import {formatDate} from './utils/format';
+import {useDashboardViewModel} from './viewmodels/useDashboardViewModel';
 
+/** MVVM pattern: View. Renders the ViewModel state and binds UI events to its commands. */
 function App() {
-    const [activeTab, setActiveTab] = useState('dashboard');
-    const [projects, setProjects] = useState([]);
-    const [deployments, setDeployments] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isProjectModalOpen, setProjectModalOpen] = useState(false);
-    const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
-    const [triggerProject, setTriggerProject] = useState(null);
-    const [triggerError, setTriggerError] = useState('');
-    const [pendingAction, setPendingAction] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [projectFilter, setProjectFilter] = useState('all');
-    const [toast, setToast] = useState(null);
-    const [user, setUser] = useState(null);
-    const [isSessionLoading, setIsSessionLoading] = useState(true);
+    const vm = useDashboardViewModel();
+    const {session, navigation, data, filters, insights, dialogs, commands, toast} = vm;
 
-    const showToast = (message, type = 'info') => {
-        setToast({message, type});
-        window.clearTimeout(showToast.timeoutId);
-        showToast.timeoutId = window.setTimeout(() => setToast(null), 3200);
-    };
-
-    const refreshDashboard = async () => {
-        setIsLoading(true);
-
-        try {
-            const [projectData, deploymentData] = await Promise.all([
-                getProjects(),
-                getDeployments(),
-            ]);
-
-            setProjects(projectData);
-            setDeployments(deploymentData);
-            if (deploymentData.some((deployment) => deployment.workflow_url)) {
-                showToast('Live GitHub Actions pipeline runs loaded.', 'success');
-            }
-        } catch (error) {
-            showToast(error.message || 'Unable to load dashboard data.', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        let refreshInterval;
-        getSession()
-            .then(({user: sessionUser}) => {
-                setUser(sessionUser);
-                if (sessionUser) {
-                    refreshDashboard();
-                    refreshInterval = window.setInterval(refreshDashboard, 30000);
-                } else {
-                    setProjects([]);
-                    setDeployments([]);
-                    setIsLoading(false);
-                }
-            })
-            .catch(() => {
-                setUser(null);
-                setProjects([]);
-                setDeployments([]);
-                setIsLoading(false);
-            })
-            .finally(() => {
-                setIsSessionLoading(false);
-            });
-        return () => {
-            if (refreshInterval) {
-                window.clearInterval(refreshInterval);
-            }
-        };
-    }, []);
-
-    const handleLogin = () => window.location.assign(getLoginUrl());
-    const handleLogout = async () => {
-        try {
-            await logout();
-            setUser(null);
-            setProjects([]);
-            setDeployments([]);
-        } catch (error) {
-            showToast(error.message || 'Unable to sign out.', 'error');
-        }
-    };
-
-    if (isSessionLoading) {
+    if (session.isSessionLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">
                 <div className="flex items-center gap-3 text-sm">
                     <RefreshCw className="h-5 w-5 animate-spin text-emerald-400"/>
-                    Authorization Check...
+                    Checking authorization...
                 </div>
             </div>
         );
     }
 
-    if (!user) {
-        return <LoginPage onLogin={handleLogin}/>;
+    if (!session.user) {
+        return <LoginPage onLogin={session.login} error={session.loginError}/>;
     }
 
-    const handleCreateProject = async (projectData) => {
-        try {
-            const newProject = await createProject(projectData);
-            setProjectModalOpen(false);
-            setActiveTab('projects');
-            await refreshDashboard();
-            showToast(`Project "${newProject.name}" and its deployment history were loaded.`, 'success');
-        } catch (error) {
-            showToast(error.message || 'Unable to save the project.', 'error');
-        }
-    };
-
-    const handleDeleteProject = (project) => {
-        setPendingAction({type: 'project', project});
-        setConfirmModalOpen(true);
-    };
-
-    const handleCancelDeployment = (deployment) => {
-        setPendingAction({type: 'deployment', deployment});
-        setConfirmModalOpen(true);
-    };
-
-    const handleRerunDeployment = async (deployment) => {
-        try {
-            await rerunDeployment(deployment.id, deployment.project_id);
-            showToast('GitHub Actions workflow rerun was requested.', 'success');
-            window.setTimeout(refreshDashboard, 1500);
-        } catch (error) {
-            showToast(error.message || 'Unable to rerun the deployment.', 'error');
-        }
-    };
-
-    const handleConfirmAction = async () => {
-        if (!pendingAction) {
-            return;
-        }
-
-        try {
-            if (pendingAction.type === 'project') {
-                await deleteProject(pendingAction.project.id);
-                setProjects((currentProjects) =>
-                    currentProjects.filter((project) => Number(project.id) !== Number(pendingAction.project.id)),
-                );
-                setDeployments((currentDeployments) =>
-                    currentDeployments.filter(
-                        (deployment) => Number(deployment.project_id) !== Number(pendingAction.project.id),
-                    ),
-                );
-                showToast(`Project "${pendingAction.project.name}" was deleted successfully.`, 'success');
-            }
-
-            if (pendingAction.type === 'deployment') {
-                await deleteDeployment(
-                    pendingAction.deployment.id,
-                    pendingAction.deployment.project_id,
-                );
-                setDeployments((currentDeployments) =>
-                    currentDeployments.filter((deployment) => Number(deployment.id) !== Number(pendingAction.deployment.id)),
-                );
-                showToast('Deployment was cancelled successfully.', 'success');
-            }
-        } catch (error) {
-            showToast(error.message || 'The requested action could not be completed.', 'error');
-        } finally {
-            setConfirmModalOpen(false);
-            setPendingAction(null);
-        }
-    };
-
-    const handleTriggerDeploy = async (project, options) => {
-        setTriggerError('');
-        try {
-            await triggerDeployment(project.id, {
-                ...options,
-                versionTag: options.createTag ? options.tagName : `deploy-${Date.now()}`,
-            });
-            setTriggerProject(null);
-            setActiveTab('deployments');
-            showToast(`GitHub Actions deployment started for ${project.name}.`, 'success');
-            window.setTimeout(refreshDashboard, 1500);
-        } catch (error) {
-            const message = error.message || 'Unable to trigger deployment.';
-            setTriggerError(message);
-            showToast(message, 'error');
-        }
-    };
+    const deploymentTable = (
+        <DeploymentTable
+            deployments={data.deployments}
+            projects={data.projects}
+            warnings={data.warnings}
+            onCancelDeployment={commands.requestCancelDeployment}
+            onRerunDeployment={commands.rerunDeployment}
+            isLoading={data.isLoading}
+            searchTerm={filters.searchTerm}
+            setSearchTerm={filters.setSearchTerm}
+            projectFilter={filters.projectFilter}
+            setProjectFilter={filters.setProjectFilter}
+        />
+    );
+    const projectList = (
+        <ProjectList
+            projects={data.projects}
+            onTriggerDeploy={dialogs.openTrigger}
+            onDeleteProject={commands.requestDeleteProject}
+            isLoading={data.isLoading}
+            showOwner={session.user.role === 'Admin'}
+        />
+    );
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100">
             <Navbar
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                onAddProject={() => setProjectModalOpen(true)}
-                user={user}
-                onLogin={handleLogin}
-                onLogout={handleLogout}
+                activeTab={navigation.activeTab}
+                onTabChange={navigation.setActiveTab}
+                onAddProject={dialogs.openProjectModal}
+                user={session.user}
+                onLogout={session.logout}
             />
 
             <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
                 {toast && (
-                    <div
-                        className={`fixed right-4 top-20 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-2 rounded-lg border px-4 py-3 shadow-2xl ${
-                            toast.type === 'success'
-                                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
-                                : 'border-rose-500/40 bg-rose-500/10 text-rose-100'
-                        }`}
-                        role="status"
-                    >
+                    <div role="status"
+                         className={`fixed right-4 top-20 z-[100] flex max-w-[calc(100vw-2rem)] items-start gap-2 rounded-lg border px-4 py-3 shadow-2xl ${
+                             toast.type === 'success'
+                                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                                 : 'border-rose-500/40 bg-rose-500/10 text-rose-100'
+                         }`}>
                         <BellRing className="h-4 w-4"/>
                         <span>{toast.message}</span>
                     </div>
                 )}
 
-                {activeTab === 'dashboard' && (
+                {navigation.activeTab === 'dashboard' && (
                     <div className="space-y-6">
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <p className="text-sm font-medium uppercase tracking-[0.22em] text-slate-400">Overview</p>
                                 <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">Pipeline health</h2>
+                                {data.lastSyncedAt && (
+                                    <p className="mt-1 text-xs text-slate-500">Synchronised with GitHub {formatDate(data.lastSyncedAt)}</p>
+                                )}
                             </div>
-
-                            <button
-                                type="button"
-                                onClick={refreshDashboard}
-                                className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm font-medium text-slate-200 hover:border-slate-500 hover:text-white"
-                            >
+                            <button type="button" onClick={data.refresh}
+                                    className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm font-medium text-slate-200 hover:border-slate-500 hover:text-white">
                                 <RefreshCw className="h-4 w-4"/>
                                 Refresh
                             </button>
                         </div>
-
-                        <StatsCards
-                            projects={projects}
-                            deployments={deployments}
-                            isLoading={isLoading}
-                        />
-
-                        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.35fr]">
-                            <ProjectList
-                                projects={projects}
-                                onTriggerDeploy={setTriggerProject}
-                                onDeleteProject={handleDeleteProject}
-                                isLoading={isLoading}
-                            />
-
-                            <DeploymentTable
-                                deployments={deployments}
-                                projects={projects}
-                                onCancelDeployment={handleCancelDeployment}
-                                onRerunDeployment={handleRerunDeployment}
-                                isLoading={isLoading}
-                                searchTerm={searchTerm}
-                                setSearchTerm={setSearchTerm}
-                                projectFilter={projectFilter}
-                                setProjectFilter={setProjectFilter}
-                            />
+                        <StatsCards projects={data.projects} deployments={data.deployments} isLoading={data.isLoading}/>
+                        <div className="grid gap-6 xl:grid-cols-[0.9fr_1.6fr]">
+                            {projectList}
+                            {deploymentTable}
                         </div>
                     </div>
                 )}
 
-                {activeTab === 'projects' && (
+                {navigation.activeTab === 'projects' && (
                     <div className="space-y-6">
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <p className="text-sm font-medium uppercase tracking-[0.22em] text-slate-400">Projects</p>
                                 <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">Project catalog</h2>
                             </div>
-
-                            <button
-                                type="button"
-                                onClick={() => setProjectModalOpen(true)}
-                                className="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400"
-                            >
+                            <button type="button" onClick={dialogs.openProjectModal}
+                                    className="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400">
                                 Add project
                             </button>
                         </div>
-
-                        <ProjectList
-                            projects={projects}
-                            onTriggerDeploy={setTriggerProject}
-                            onDeleteProject={handleDeleteProject}
-                            isLoading={isLoading}
-                        />
+                        {projectList}
                     </div>
                 )}
 
-                {activeTab === 'deployments' && (
-                    <DeploymentTable
-                        deployments={deployments}
-                        projects={projects}
-                        onCancelDeployment={handleCancelDeployment}
-                        onRerunDeployment={handleRerunDeployment}
-                        isLoading={isLoading}
-                        searchTerm={searchTerm}
-                        setSearchTerm={setSearchTerm}
-                        projectFilter={projectFilter}
-                        setProjectFilter={setProjectFilter}
-                    />
+                {navigation.activeTab === 'deployments' && deploymentTable}
+
+                {navigation.activeTab === 'metrics' && (
+                    <MetricsPanel metrics={insights.metrics} days={insights.metricsDays}
+                                  onDaysChange={insights.changeMetricsDays} error={insights.metricsError}/>
+                )}
+
+                {navigation.activeTab === 'activity' && (
+                    <AuditLog entries={insights.auditLog} onRefresh={insights.loadAuditLog}/>
                 )}
             </main>
 
-            <AddProjectModal isOpen={isProjectModalOpen} onClose={() => setProjectModalOpen(false)}
-                             onSubmit={handleCreateProject}/>
-
-            <ConfirmModal
-                isOpen={isConfirmModalOpen}
-                onClose={() => setConfirmModalOpen(false)}
-                onConfirm={handleConfirmAction}
-            />
-            <TriggerDeployModal
-                project={triggerProject}
-                isOpen={Boolean(triggerProject)}
-                error={triggerError}
-                onClose={() => {
-                    setTriggerError('');
-                    setTriggerProject(null);
-                }}
-                onSubmit={(options) => handleTriggerDeploy(triggerProject, options)}
-            />
+            {dialogs.isProjectModalOpen && (
+                <AddProjectModal onClose={dialogs.closeProjectModal} onSubmit={commands.createProject}/>
+            )}
+            <ConfirmModal action={dialogs.pendingAction} onClose={dialogs.closeConfirm} onConfirm={commands.confirmPendingAction}/>
+            {dialogs.triggerProject && (
+                <TriggerDeployModal
+                    key={dialogs.triggerProject.id}
+                    project={dialogs.triggerProject}
+                    error={dialogs.triggerError}
+                    onClose={dialogs.closeTrigger}
+                    onSubmit={commands.triggerDeploy}
+                />
+            )}
         </div>
     );
 }
