@@ -25,7 +25,7 @@ function ProjectList({projects, onTriggerDeploy, onDeleteProject, isLoading, sho
                     No projects yet. Add a GitHub repository to start tracking its pipeline.
                 </p>
             ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {projects.map((project) => (
                         <article key={project.id} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
                             <div className="flex items-start justify-between gap-3">

@@ -96,7 +96,7 @@ function App() {
                             </button>
                         </div>
                         <StatsCards projects={data.projects} deployments={data.deployments} isLoading={data.isLoading}/>
-                        <div className="grid gap-6 xl:grid-cols-[0.9fr_1.6fr]">
+                        <div className="space-y-6">
                             {projectList}
                             {deploymentTable}
                         </div>
